@@ -1,34 +1,73 @@
 import { useForm } from 'react-hook-form';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
+import { useEffect } from 'react';
+import { useAuth } from "../context/AuthContext.jsx";
+import { useNavigate, Link } from 'react-router-dom';
+import { zodResolver } from "@hookform/resolvers/zod";
+import { loginSchema } from "../../../src/schemas/authSchema";
 
 function LoginPage() {
-    const { register, handleSubmit, formState: { errors } } = useForm();
+    const {
+        register,
+        handleSubmit,
+        formState: { errors },
+    } = useForm({
+        resolver: zodResolver(loginSchema),
+        mode: "onSubmit",
+        reValidateMode: "onChange"
+    });
 
-    const onSubmit = (data) => {
-        console.log("Datos enviados:", data);
-    };
+    const { signin, isAuthenticated, errors: signinErrors } = useAuth();
+
+    const navigate = useNavigate();
+    
+    const onSubmit = handleSubmit((data) => {
+        signin(data);
+    });
+
+    useEffect(() => {
+        if (isAuthenticated) {
+            navigate("/");
+        }
+    }, [isAuthenticated, navigate]);
 
     return (
-        <div className='bg-zinc-800 max-w-md p-10 rounded-md'>
-            <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-                <Input
-                    placeholder="Email"
-                    {...register("email", { required: "El email es obligatorio" })}
-                    error={errors.email?.message}
-                />
-                <Input
-                    placeholder="Contraseña"
-                    type="password"
-                    {...register("password", { required: "La contraseña es obligatoria" })}
-                    error={errors.password?.message}
-                />
-                <Button type="submit">
-                    Entrar
-                </Button>
-            </form>
+        <div className="bg-background-image flex items-center justify-center min-h-screen">
+            <div className="bg-zinc-800/90 backdrop-blur-4x1 max-w-md p-10 rounded-4xl w-full shadow-2xl border-zinc-700">
+
+                <h1 className="text-2xl font-bold text-white mb-6 text-center">Iniciar Sesión</h1>
+
+                <form onSubmit={onSubmit} className="flex flex-col gap-4">
+                    <Input
+                        placeholder="Email"
+                        type="email"
+                        {...register("email")}
+                        error={errors.email?.message || signinErrors.find(err => err.field === "email")?.message}
+                    />
+
+                    <Input
+                        placeholder="Contraseña"
+                        type="password"
+                        {...register("password")}
+                        error={errors.password?.message || signinErrors.find(err => err.field === "password")?.message}
+                    />
+
+                    <Button type="submit">
+                        Entrar
+                    </Button>
+                </form>
+
+                <p className="flex gap-x-2 mt-6 text-zinc-400 text-sm justify-center">
+                    ¿No tenés cuenta?
+                    <Link to="/register" className="text-blue-500 hover:underline font-semibold">
+                        Registrate
+                    </Link>
+                </p>
+            </div>
         </div>
     );
 }
+
 
 export default LoginPage;
