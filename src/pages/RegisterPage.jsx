@@ -59,8 +59,12 @@ function RegisterPage() {
     return (
         <div className="bg-background-image flex items-center justify-center min-h-screen">
             <div className="bg-zinc-800/90 backdrop-blur-4x1 max-w-md p-10 rounded-4xl w-full shadow-2xl border-zinc-700">
-
-                <h1 className="text-2xl font-bold text-white mb-6 text-center">Crear Cuenta</h1>
+                <img
+                    src="/src/assets/logo1.png"
+                    alt="Futbol y Birra Logo"
+                    className="w-48 h-48 object-contain drop-shadow-md justify-self-center mb-1"
+                />
+                <h1 className="text-2xl font-bold text-white mb-4 text-center">CREAR CUENTA</h1>
 
                 <form onSubmit={onSubmit} className="flex flex-col gap-4">
                     <Input
