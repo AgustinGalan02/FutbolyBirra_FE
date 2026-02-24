@@ -1,9 +1,12 @@
 import axios from 'axios';
 
+const FOOTBALL_API_KEY = import.meta.env.VITE_FOOTBALL_API_KEY;
+const API_BASE_URL = import.meta.env.VITE_FOOTBALL_API_URL;
+
 const footballApi = axios.create({
-  baseURL: 'https://v3.football.api-sports.io',
+  baseURL: API_BASE_URL,
   headers: {
-    'x-apisports-key': '116cfd8d9e3257cb8c232951a15f7f13'
+    'x-apisports-key': FOOTBALL_API_KEY
   }
 });
 
