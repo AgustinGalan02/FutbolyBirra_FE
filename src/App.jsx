@@ -5,6 +5,9 @@ import HomePage from './pages/HomePage';
 import ProfilePage from './pages/ProfilePage.jsx';
 import SettingsPage from './pages/SettingsPage.jsx';
 import TeamPage from './pages/TeamPage.jsx';
+import PostPage from './pages/PostPage.jsx';
+import CategoryPage from './pages/CategoryPage.jsx';
+
 import ProtectedRoute from './ProtectedRoute.jsx';
 import { AuthProvider } from './context/AuthContext.jsx';
 
@@ -21,6 +24,8 @@ function App() {
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/team" element={<TeamPage />} />
+            <Route path="/post/:id" element={<PostPage />} />
+            <Route path="/category/:id" element={<CategoryPage />} />
           </Route>
         </Routes>
       </BrowserRouter>

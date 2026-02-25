@@ -6,7 +6,13 @@ function ProtectedRoute() {
 
     const { loading, isAuthenticated } = useAuth();
 
-    if (loading) return <LoadingSpinner />;
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-zinc-900 flex items-center justify-center">
+                <LoadingSpinner />
+            </div>
+        );
+    }
 
     if (!loading && !isAuthenticated) return <Navigate to="/login" replace />;
 

@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+body {
+    background-color: #18181B;
+}
+
 .bg-background-image {
   background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), 
               url('./assets/background-hinchada.jpg');
