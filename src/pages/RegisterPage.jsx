@@ -6,6 +6,7 @@ import { getArgentineTeams } from '../api/footballTeams';
 import { useAuth } from "../context/AuthContext.jsx";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { registerSchema } from "../../../src/schemas/authSchema";
+import { ARGENTINE_TEAMS_LOCAL } from '../api/teamsData';
 import '../index.css';
 
 
@@ -32,14 +33,16 @@ function RegisterPage() {
 
 
     useEffect(() => {
-        const loadTeams = async () => {
-            const data = await getArgentineTeams();
-            const argentina = {
+        const loadTeams = () => {
+            const argentinaNeutral = {
                 team: { id: 26, name: "Seleccion Argentina (NEUTRAL)", logo: "https://media.api-sports.io/football/teams/26.png" }
             };
-            setTeams([argentina, ...data]);
+            
+            // Cargamos los datos locales directamente sin esperar a la API
+            setTeams([argentinaNeutral, ...ARGENTINE_TEAMS_LOCAL]);
             setLoading(false);
         };
+        
         loadTeams();
     }, []);
 

@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Search, MessageSquare, Clock, User } from 'lucide-react';
+import { Search, MessageSquare, Clock, User, LogOut } from 'lucide-react';
 import { GetCategoriesRequest } from '../api/categories';
 import LoadingSpinner from '../components/LoadingSpinner';
 import FormatDate from '../components/FormatDate';
 
 function HomePage() {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, logout } = useAuth();
   const [categories, setCategories] = useState([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
 
@@ -50,13 +50,24 @@ function HomePage() {
 
           <div className="flex items-center gap-4">
             {isAuthenticated ? (
-              <Link to="/profile" className="flex items-center gap-2 hover:text-[#f0ac00] transition">
-                <User className="w-5 h-5" />
-                <span className="font-medium">{user?.username}</span>
-              </Link>
+              <div className="flex items-center gap-6">
+                <Link to="/profile" className="flex items-center gap-2 text-zinc-200 hover:text-[#f0ac00] transition">
+                  <User className="w-5 h-5" />
+                  <span className="font-medium">{user?.username}</span>
+                </Link>
+                
+                {/* BOTÓN DE CERRAR SESIÓN */}
+                <button 
+                  onClick={() => logout()} 
+                  className="text-zinc-500 hover:text-red-500 transition p-1 rounded-md hover:bg-zinc-700/50"
+                  title="Cerrar Sesión"
+                >
+                  <LogOut className="w-5 h-5" />
+                </button>
+              </div>
             ) : (
               <>
-                <Link to="/login" className="hover:text-[#f0ac00] transition font-medium">Iniciar Sesión</Link>
+                <Link to="/login" className="text-zinc-200 hover:text-[#f0ac00] transition font-medium">Iniciar Sesión</Link>
                 <Link to="/register" className="bg-[#f0ac00] text-black px-4 py-2 rounded-lg font-bold hover:bg-[#d49800] transition active:scale-95">
                   Registrarse
                 </Link>

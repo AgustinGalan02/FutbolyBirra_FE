@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from "react";
-import { RegisterRequest, LoginRequest, VerifyTokenRequest } from "../api/auth";
+import { RegisterRequest, LoginRequest, VerifyTokenRequest, LogoutRequest} from "../api/auth";
 import Cookies from "js-cookie";
 import { set } from "zod";
 
@@ -52,6 +52,17 @@ export const AuthProvider = ({ children }) => {
         }
     }
 
+    const logout = async () => {
+        try {
+            await LogoutRequest(); // mandar al backend q borre cookie
+            Cookies.remove('token'); // extra, fuerza el borrado de las cookies en el front
+            setIsAuthenticated(false);
+            setUser(null);
+        } catch (error) {
+            console.error("Error al cerrar sesión", error);
+        }
+    };
+
 
     useEffect(() => {
         if (errors && errors.length > 0) {
@@ -99,6 +110,7 @@ export const AuthProvider = ({ children }) => {
                 user,
                 signup,
                 signin,
+                logout,
                 loading,
                 isAuthenticated,
                 errors
