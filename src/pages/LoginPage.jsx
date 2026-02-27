@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useAuth } from "../context/AuthContext.jsx";
 import { useNavigate, Link } from 'react-router-dom';
 import { zodResolver } from "@hookform/resolvers/zod";
-import { loginSchema } from "../../../src/schemas/authSchema";
+import { loginSchema } from "../components/authSchema.js";
 
 function LoginPage() {
     const {

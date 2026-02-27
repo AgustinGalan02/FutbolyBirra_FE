@@ -4,7 +4,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { Input, Button, List, Footer } from '../components/';
 import { useAuth } from "../context/AuthContext.jsx";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { registerSchema } from "../../../src/schemas/authSchema";
+import { registerSchema } from "../components/authSchema.js";
 import { ARGENTINE_TEAMS_LOCAL } from '../api/teamsData';
 import '../index.css';
 
