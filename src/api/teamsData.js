@@ -1,4 +1,6 @@
 export const ARGENTINE_TEAMS_LOCAL = [
+  { team: { id: 26, name: "ESTA LOCURAAAA", logo: "https://media.api-sports.io/football/teams/26.png" } },
+  { team: { id: 39, name: "NENAZO PREMIER LEAGUE", logo: "https://media.api-sports.io/football/leagues/39.png" } },
   { team: { id: 434, name: "Gimnasia L.P.", logo: "https://media.api-sports.io/football/teams/434.png" } },
   { team: { id: 435, name: "River Plate", logo: "https://media.api-sports.io/football/teams/435.png" } },
   { team: { id: 436, name: "Racing Club", logo: "https://media.api-sports.io/football/teams/436.png" } },

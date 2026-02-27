@@ -13,12 +13,9 @@ function ProtectedRoute() {
             </div>
         );
     }
+    if (!loading && !isAuthenticated) return <Navigate to="/" replace />;
 
-    if (!loading && !isAuthenticated) return <Navigate to="/login" replace />;
-
-    return (
-        <Outlet />
-    )
+    return (<Outlet />)
 }
 
 export default ProtectedRoute;

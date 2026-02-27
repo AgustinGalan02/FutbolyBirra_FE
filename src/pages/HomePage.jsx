@@ -1,151 +1,177 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Search, MessageSquare, Clock, User, LogOut } from 'lucide-react';
-import { GetCategoriesRequest } from '../api/categories';
-import LoadingSpinner from '../components/LoadingSpinner';
-import FormatDate from '../components/FormatDate';
+import { MessageSquare, Clock, MessageCirclePlus, Trash2 } from 'lucide-react';
+import { GetCategoriesRequest, createCategoryRequest, deleteCategoryRequest } from '../api/categories';
+import { Navbar, FormModal, LoadingSpinner, DeleteModal, Footer, FormatDate } from '../components';
 
 function HomePage() {
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const [categories, setCategories] = useState([]);
-  const [loadingCategories, setLoadingCategories] = useState(true);
+  const [loading, setLoading] = useState(true);
+
+  // ESTADOS MODAL CREAR
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newCat, setNewCat] = useState({ title: "", description: "" });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // ESTADOS MODAL ELIMINAR
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState(null);
 
   useEffect(() => {
-    async function loadCategories() {
-      try {
-        const res = await GetCategoriesRequest();
-        setCategories(res.data);
-        setLoadingCategories(false);
-      } catch (error) {
-        console.error("Error al cargar categorias", error);
-        setLoadingCategories(false);
-      }
-    }
-    loadCategories();
+    GetCategoriesRequest().then(res => setCategories(res.data)).finally(() => setLoading(false));
   }, []);
 
-  if (loadingCategories) return <LoadingSpinner />;
+  // Lógica Crear
+  const handleCreateCategory = async (e) => {
+    e.preventDefault();
+    if (!newCat.title.trim()) return;
+    setIsSubmitting(true);
+    try {
+      const res = await createCategoryRequest(newCat);
+      setCategories([res.data, ...categories]);
+      setShowCreateModal(false);
+      setNewCat({ title: "", description: "" });
+    } finally { setIsSubmitting(false); }
+  };
+
+  // Lógica Abrir Modal Eliminar
+  const openDeleteModal = (cat) => {
+    setCategoryToDelete(cat);
+    setShowDeleteModal(true);
+  };
+
+  // Lógica Confirmar Eliminación
+  const handleConfirmDelete = async () => {
+    if (!categoryToDelete) return;
+    try {
+      await deleteCategoryRequest(categoryToDelete._id);
+      setCategories(categories.filter(c => c._id !== categoryToDelete._id));
+      setShowDeleteModal(false);
+      setCategoryToDelete(null);
+    } catch (error) {
+      console.error("Error al eliminar:", error);
+    }
+  };
+
+  if (loading) return <LoadingSpinner />;
 
   return (
-    <div className="min-h-screen bg-zinc-900 text-zinc-200 font-sans">
-      {/* NAVBAR */}
-      <nav className="bg-zinc-800 border-b border-zinc-700 p-4 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
-            <img src="../src/assets/logo1.png" alt="Logo" className="w-12 h-12 object-contain" />
-            <span className="text-[#f0ac00] font-bold text-xl hidden md:block">Fútbol y Birra</span>
-          </Link>
+    <div className="min-h-screen bg-zinc-900 text-zinc-200 font-sans flex flex-col">
+      <Navbar />
+      <main className="max-w-7xl mx-auto p-6 flex-grow w-full">
 
-          <div className="flex-1 max-w-md mx-8">
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Buscar posts..."
-                className="w-full bg-zinc-900 border border-zinc-600 rounded-full py-2 px-10 focus:outline-none focus:border-[#f0ac00] transition-all"
-              />
-              <Search className="absolute left-3 top-2.5 text-zinc-500 w-5 h-5" />
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4">
-            {isAuthenticated ? (
-              <div className="flex items-center gap-6">
-                <Link to="/profile" className="flex items-center gap-2 text-zinc-200 hover:text-[#f0ac00] transition">
-                  <User className="w-5 h-5" />
-                  <span className="font-medium">{user?.username}</span>
-                </Link>
-                
-                {/* BOTÓN DE CERRAR SESIÓN */}
-                <button 
-                  onClick={() => logout()} 
-                  className="text-zinc-500 hover:text-red-500 transition p-1 rounded-md hover:bg-zinc-700/50"
-                  title="Cerrar Sesión"
-                >
-                  <LogOut className="w-5 h-5" />
-                </button>
-              </div>
-            ) : (
-              <>
-                <Link to="/login" className="text-zinc-200 hover:text-[#f0ac00] transition font-medium">Iniciar Sesión</Link>
-                <Link to="/register" className="bg-[#f0ac00] text-black px-4 py-2 rounded-lg font-bold hover:bg-[#d49800] transition active:scale-95">
-                  Registrarse
-                </Link>
-              </>
-            )}
-          </div>
-        </div>
-      </nav>
-
-      <main className="max-w-7xl mx-auto p-6">
+        {/* BANNER PARA INVITADOS - REINTEGRADO */}
         {!isAuthenticated && (
-          <div className="bg-[#f0ac00]/10 border border-[#f0ac00]/30 p-4 rounded-xl mb-8 text-center">
-            <p className="text-[#f0ac00] font-medium">¡Registrate para escribir o responder temas!</p>
+          <div className="bg-[#f0ac00]/10 border border-[#f0ac00]/30 p-4 rounded-xl mb-8 text-center animate-pulse shadow-[0_0_15px_rgba(240,172,0,0.1)]">
+            <Link to="/register"
+            ><p className="text-[#f0ac00] font-bold tracking-tight">
+                ¡Registrate para poder subir posts y comentar en el foro!
+              </p>
+            </Link>
           </div>
         )}
 
-        <div className="bg-zinc-800 border border-zinc-700 rounded-xl overflow-hidden shadow-xl">
-          <div className="bg-zinc-700/50 p-3 flex text-sm font-bold text-zinc-400 uppercase tracking-wider">
-            <div className="flex-1 px-4">Foros Temáticos</div>
-            <div className="w-32 text-center hidden md:block">Temas</div>
-            <div className="w-64 px-4 hidden lg:block">Último mensaje</div>
+        <div className="flex justify-between items-end mb-6">
+          <div>
+            <h1 className="text-3xl font-black text-white uppercase tracking-tighter italic">FUTBOL Y BIRRA</h1>
+            <p className="text-zinc-500 text-sm">Discusión general sobre el fútbol y más</p>
+          </div>
+          {user?.role === 'admin' && (
+            <button onClick={() => setShowCreateModal(true)} className="bg-[#f0ac00] text-black px-5 py-2.5 rounded-xl font-bold hover:bg-[#d49800] transition flex items-center gap-2 shadow-lg">
+              <MessageCirclePlus className="w-5 h-5" /> Nueva Categoría
+            </button>
+          )}
+        </div>
+
+        <div className="bg-zinc-800 border border-zinc-700 rounded-2xl overflow-hidden shadow-2xl">
+          <div className="bg-zinc-700/50 p-4 flex text-xs font-black text-zinc-400 uppercase tracking-widest border-b border-zinc-700 text-center">
+            <div className="flex-1 px-4 text-left">Subforo</div>
+            <div className="w-32 hidden md:block">Estadísticas</div>
+            <div className="w-72 hidden lg:block text-left pl-6">Última Actividad</div>
+            {user?.role === 'admin' && <div className="w-16">Acción</div>}
           </div>
 
-          <div className="divide-y divide-zinc-700">
+          <div className="divide-y divide-zinc-700/50">
             {categories.map((cat) => (
-              <div key={cat._id} className="flex items-center p-4 hover:bg-zinc-750 transition-colors group">
-                {/* Info del Foro */}
-                <div className="flex-1 flex gap-4 items-center">
-                  <div className="bg-zinc-900 p-3 rounded-full text-[#f0ac00] group-hover:bg-[#f0ac00] group-hover:text-black transition">
+              <div key={cat._id} className="flex items-center p-5 hover:bg-zinc-700/30 transition-all group">
+                {/* Info */}
+                <div className="flex-1 flex gap-5 items-center truncate">
+                  <div className="bg-zinc-900 p-4 rounded-2xl text-[#f0ac00] group-hover:bg-[#f0ac00] group-hover:text-black transition-all">
                     <MessageSquare className="w-6 h-6" />
                   </div>
-                  <div>
-                    <Link to={`/category/${cat._id}`} className="text-lg font-bold text-[#f0ac00] hover:underline">
-                      {cat.title}
-                    </Link>
-                    <p className="text-zinc-400 text-sm">{cat.description}</p>
+                  <div className="truncate">
+                    <Link to={`/category/${cat._id}`} className="text-xl font-bold text-white group-hover:text-[#f0ac00] transition-colors">{cat.title}</Link>
+                    <p className="text-zinc-400 text-sm line-clamp-1">{cat.description}</p>
                   </div>
                 </div>
 
-                {/* Estadísticas*/}
-                <div className="w-32 text-center hidden md:block border-x border-zinc-700 text-sm">
-                  <div className="text-zinc-200 font-semibold">{cat.postCount || 0}</div>
-                  <div className="text-zinc-500 text-xs uppercase font-bold">Posts</div>
+                {/* Stats */}
+                <div className="w-32 text-center hidden md:block border-x border-zinc-700/50">
+                  <div className="text-white font-black text-lg">{cat.postCount || 0}</div>
+                  <div className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest">Temas</div>
                 </div>
 
-                {/* Último Post*/}
-                <div className="w-64 px-4 hidden lg:block text-sm">
+                {/* Último Mensaje */}
+                <div className="w-72 px-6 hidden lg:block text-sm">
                   {cat.lastPostTitle ? (
-                    <>
-                      <div className="flex items-center gap-1 text-zinc-200 font-medium truncate">
-                        <Clock className="w-3 h-3 text-zinc-500" />
-                        <span className="truncate" title={cat.lastPostTitle}>
-                          {cat.lastPostTitle}
-                        </span>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 text-zinc-100 font-semibold truncate">
+                        <Clock className="w-3.5 h-3.5 text-[#f0ac00]" />
+                        <span className="truncate">{cat.lastPostTitle}</span>
                       </div>
-                      <div className="text-zinc-400 text-xs mt-1">
-                        por <Link to={`/api/${cat.lastPostAuthor._id}`} className="text-[#f0ac00] hover:underline">{cat.lastPostAuthor.name}</Link>
-                        <br />
-                        <span className="text-zinc-500">
-                          {(() => {
-                            const d = new Date(cat.lastPostDate);
-                            const date = `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getFullYear()).slice(-2)}`;
-                            const time = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-                            return `${date} ${time} hs`;
-                          })()}
-                        </span>
+                      <div className="text-zinc-500 text-xs">
+                        por <span className="text-zinc-300 font-medium">{cat.lastPostAuthor || 'Usuario'}</span><br />
+                        <span className="text-[10px] uppercase opacity-70">{FormatDate(cat.lastPostDate)}</span>
                       </div>
-                    </>
-                  ) : (
-                    <span className="text-zinc-500 italic text-xs">Sin actividad</span>
-                  )}
+                    </div>
+                  ) : <span className="text-zinc-600 italic text-xs">Sin actividad</span>}
                 </div>
+
+                {/* BOTÓN ELIMINAR (Solo Admin) */}
+                {user?.role === 'admin' && (
+                  <div className="w-16 flex justify-center">
+                    <button onClick={() => openDeleteModal(cat)} className="p-2 text-zinc-600 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all">
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>
         </div>
+
       </main>
+
+      <Footer />
+
+      {/* MODAL CREAR */}
+      <FormModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSubmit={handleCreateCategory}
+        title="Nueva Categoría"
+        icon={MessageCirclePlus}
+        isSubmitting={isSubmitting}
+        submitLabel="Crear"
+      >
+        <div className="space-y-4">
+          <input type="text" placeholder="Título" value={newCat.title} onChange={e => setNewCat({ ...newCat, title: e.target.value })} className="w-full bg-zinc-900 border border-zinc-700 rounded-xl p-3 text-white outline-none focus:ring-1 focus:ring-[#f0ac00]" required />
+          <textarea placeholder="Descripción" value={newCat.description} onChange={e => setNewCat({ ...newCat, description: e.target.value })} className="w-full bg-zinc-900 border border-zinc-700 rounded-xl p-3 text-white outline-none focus:ring-1 focus:ring-[#f0ac00] resize-none" rows="3" required />
+        </div>
+      </FormModal>
+
+      {/* DELETEMODAL */}
+      <DeleteModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleConfirmDelete}
+        title="Eliminar Categoría"
+        message={`¿Estás seguro de eliminar "${categoryToDelete?.title}"? Esta acción borrará todos los posts asociados y no se puede deshacer.`}
+      />
     </div>
+
   );
 }
 
