@@ -20,7 +20,7 @@ function Navbar({ showSearch = false, searchTerm = "", setSearchTerm, backTo, ba
         
         <div className="flex items-center gap-6 justify-self-start">
           <Link to="/" className="flex-shrink-0">
-            <img src="/src/assets/logo1.png" alt="Logo" className="w-14 h-14 object-contain" />
+            <img src="/logo1.png" alt="Logo" className="w-14 h-14 object-contain" />
           </Link>
 
           {(backTo || backLabel) && (

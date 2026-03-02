@@ -3,16 +3,12 @@ import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Input, Button, List, Footer } from '../components/';
 import { useAuth } from "../context/AuthContext.jsx";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { registerSchema } from "../components/authSchema.js";
 import { ARGENTINE_TEAMS_LOCAL } from '../api/teamsData';
 import '../index.css';
 
 function RegisterPage() {
     const { register, handleSubmit, setValue, formState: { errors } } = useForm({
-        resolver: zodResolver(registerSchema),
         mode: "onSubmit",
-        reValidateMode: "onChange"
     });
     const { signup, isAuthenticated, errors: registerErrors } = useAuth();
     const navigate = useNavigate();
@@ -56,7 +52,7 @@ function RegisterPage() {
             <main className="flex-grow flex items-center justify-center p-4 my-8">
                 <div className="bg-zinc-800/90 backdrop-blur-4xl max-w-md p-10 rounded-4xl w-full shadow-2xl border border-zinc-700 animate-in fade-in zoom-in duration-300">
                     <img
-                        src="/src/assets/logo1.png"
+                        src="/logo1.png"
                         alt="Futbol y Birra Logo"
                         className="w-40 h-40 object-contain drop-shadow-md mx-auto mb-1"
                     />
@@ -65,20 +61,20 @@ function RegisterPage() {
                     <form onSubmit={onSubmit} className="flex flex-col gap-4">
                         <Input
                             placeholder="Usuario"
-                            {...register("username")}
+                            {...register("username", { required: "Ingresar usuario" })}
                             error={errors.username?.message || registerErrors.find(err => err.field === "username")?.message}
                         />
 
                         <Input
                             placeholder="Email"
-                            {...register("email")}
+                            {...register("email", { required: "Ingresar email" })}
                             error={errors.email?.message || registerErrors.find(err => err.field === "email")?.message}
                         />
 
                         <Input
                             placeholder="Contraseña"
                             type="password"
-                            {...register("password")}
+                            {...register("password", { required: "Ingresar contraseña" })}
                             error={errors.password?.message || registerErrors.find(e => e.field === "password")?.message}
                         />
 

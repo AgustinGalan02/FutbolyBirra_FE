@@ -6,7 +6,7 @@ body {
 
 .bg-background-image {
   background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), 
-              url('./assets/background-hinchada.jpg');
+              url('/background-hinchada.jpg');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;

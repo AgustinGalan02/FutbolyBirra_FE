@@ -5,6 +5,7 @@ import HomePage from './pages/HomePage';
 import ProfilePage from './pages/ProfilePage.jsx';
 import PostPage from './pages/PostPage.jsx';
 import CategoryPage from './pages/CategoryPage.jsx';
+import NotFoundPage from './pages/NotFoundPage';
 
 import ProtectedRoute from './ProtectedRoute.jsx';
 import { AuthProvider } from './context/AuthContext.jsx';
@@ -23,6 +24,9 @@ function App() {
           <Route element={<ProtectedRoute />}>
             <Route path="/profile" element={<ProfilePage />} />
           </Route>
+
+          {/* Catch-all 404 */}
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

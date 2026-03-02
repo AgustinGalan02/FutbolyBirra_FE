@@ -3,8 +3,6 @@ import { Input, Button, Footer } from '../components/';
 import { useEffect } from 'react';
 import { useAuth } from "../context/AuthContext.jsx";
 import { useNavigate, Link } from 'react-router-dom';
-import { zodResolver } from "@hookform/resolvers/zod";
-import { loginSchema } from "../components/authSchema.js";
 
 function LoginPage() {
     const {
@@ -12,9 +10,7 @@ function LoginPage() {
         handleSubmit,
         formState: { errors },
     } = useForm({
-        resolver: zodResolver(loginSchema),
         mode: "onSubmit",
-        reValidateMode: "onChange"
     });
 
     const { signin, isAuthenticated, errors: signinErrors } = useAuth();
@@ -36,7 +32,7 @@ function LoginPage() {
             <main className="flex-grow flex items-center justify-center p-4">
                 <div className="bg-zinc-800/90 backdrop-blur-4xl max-w-md p-10 rounded-4xl w-full shadow-2xl border border-zinc-700 animate-in fade-in zoom-in duration-300">
                     <img
-                        src="/src/assets/logo1.png"
+                        src="/logo1.png"
                         alt="Futbol y Birra Logo"
                         className="w-48 h-48 object-contain drop-shadow-md mx-auto mb-1"
                     />
@@ -46,15 +42,15 @@ function LoginPage() {
                         <Input
                             placeholder="Email"
                             type="email"
-                            {...register("email")}
-                            error={errors.email?.message || signinErrors.find(err => err.field === "email")?.message}
+                            {...register("email", { required: "Ingresar email" })}
+                            error={signinErrors.find(err => err.field === "email")?.message}
                         />
 
                         <Input
                             placeholder="Contraseña"
                             type="password"
-                            {...register("password")}
-                            error={errors.password?.message || signinErrors.find(err => err.field === "password")?.message}
+                            {...register("password", { required: "Ingresar contraseña" })}
+                            error={signinErrors.find(err => err.field === "password")?.message}
                         />
 
                         <Button type="submit">

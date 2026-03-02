@@ -118,6 +118,7 @@ function PostPage() {
         <Link to="/" className="text-blue-500 hover:underline">Volver al inicio</Link>
     </div>;
 
+    const userId = user?.id || user?._id;
     const postAuthorTeam = getTeamData(post.author?.team);
 
     return (
@@ -131,7 +132,7 @@ function PostPage() {
                     <div className="p-6">
                         <div className="flex items-start justify-between mb-4">
                             <h1 className="text-3xl font-bold text-white">{post.title}</h1>
-                            {user?.id === post.author?._id && (
+                            {userId === post.author?._id && (
                                 <div className="flex items-center gap-2">
                                     <button onClick={() => setIsEditPostModalOpen(true)} className="p-2 text-zinc-400 hover:text-[#f0ac00] transition-colors" title="Editar tema"><Edit className="w-5 h-5" /></button>
                                     <button onClick={() => setIsDeletePostModalOpen(true)} className="p-2 text-zinc-400 hover:text-red-500 transition-colors" title="Borrar tema"><Trash2 className="w-5 h-5" /></button>
@@ -192,7 +193,7 @@ function PostPage() {
                                                 {commentTeam.logo && <img src={commentTeam.logo} alt="escudo" className="w-4 h-4 object-contain" />}
                                                 <span className="text-zinc-500 text-xs">{FormatDate(comment.createdAt)}</span>
                                             </div>
-                                            {user?.id === comment.author?._id && (
+                                            {userId === comment.author?._id && (
                                                 <div className="opacity-0 group-hover:opacity-100 transition-opacity">
                                                     <button
                                                         onClick={() => { setCommentToDelete(comment._id); setIsDeleteCommentModalOpen(true); }}

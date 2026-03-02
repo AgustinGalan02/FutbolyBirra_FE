@@ -82,12 +82,36 @@ function CategoryPage() {
         };
     };
 
-    if (!category) return (
-        <div className="min-h-screen bg-zinc-900 text-zinc-200 flex flex-col items-center justify-center">
-            <h1 className="text-2xl font-bold text-[#f0ac00] mb-4">Categoría no encontrada</h1>
-            <Link to="/" className="text-blue-500 hover:underline">Volver al inicio</Link>
-        </div>
-    );
+    if (isLoading) {
+        return (
+            <div className="min-h-screen bg-zinc-900 text-zinc-200 font-sans flex flex-col">
+                <Navbar
+                    showSearch={true}
+                    searchTerm={searchTerm}
+                    setSearchTerm={setSearchTerm}
+                    backTo="/"
+                    backLabel="Volver"
+                />
+                <div className="flex-grow flex items-center justify-center">
+                    <LoadingSpinner />
+                </div>
+                <Footer />
+            </div>
+        );
+    }
+
+    if (!category) {
+        return (
+            <div className="min-h-screen bg-zinc-900 text-zinc-200 font-sans flex flex-col">
+                <Navbar backTo="/" backLabel="Volver" />
+                <div className="flex-grow flex flex-col items-center justify-center p-6 text-center">
+                    <h1 className="text-2xl font-bold text-[#f0ac00] mb-4">Categoría no encontrada</h1>
+                    <Link to="/" className="text-blue-500 hover:underline">Volver al inicio</Link>
+                </div>
+                <Footer />
+            </div>
+        );
+    }
 
     const filteredPosts = posts.filter(post => {
         const term = searchTerm.toLowerCase();
@@ -135,7 +159,11 @@ function CategoryPage() {
                         {filteredPosts.length === 0 ? (
                             <div className="p-10 text-center text-zinc-500">
                                 <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-20" />
-                                <p className="text-lg">No se encontraron temas.</p>
+                                <p className="text-lg">
+                                  {searchTerm.trim()
+                                    ? "No se encontraron temas con ese criterio."
+                                    : "No se encontraron temas en esta categoría."}
+                                </p>
                             </div>
                         ) : (
                             filteredPosts.map((post) => {
@@ -167,7 +195,8 @@ function CategoryPage() {
                     </div>
                 </div>
             </main>
-            <Footer></Footer>
+
+            <Footer />
 
             {/* MODAL PARA NUEVO TEMA */}
             <FormModal
