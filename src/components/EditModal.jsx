@@ -29,7 +29,7 @@ function EditModal({ isOpen, onClose, onSave, post }) {
                         <Edit className="w-5 h-5 text-[#f0ac00]" />
                         {post?.title !== undefined ? "Editar Tema" : "Editar Respuesta"}
                     </h2>
-                    <button onClick={onClose} className="text-zinc-400 hover:text-white transition p-1"><X className="w-6 h-6" /></button>
+                    <button onClick={onClose} className="text-zinc-400 hover:text-white transition p-1 cursor-pointer"><X className="w-6 h-6" /></button>
                 </div>
 
                 <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-4">
@@ -60,7 +60,7 @@ function EditModal({ isOpen, onClose, onSave, post }) {
                     </div>
 
                     <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-zinc-700">
-                        <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg font-bold text-zinc-300 hover:bg-zinc-700 transition">Cancelar</button>
+                        <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg font-bold text-zinc-300 hover:bg-zinc-700 transition cursor-pointer">Cancelar</button>
                         <Button type="submit" className="flex items-center gap-2 px-6">
                             <Send className="w-4 h-4" /> Guardar Cambios
                         </Button>

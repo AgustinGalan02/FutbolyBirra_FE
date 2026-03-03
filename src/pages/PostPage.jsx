@@ -134,8 +134,8 @@ function PostPage() {
                             <h1 className="text-3xl font-bold text-white">{post.title}</h1>
                             {userId === post.author?._id && (
                                 <div className="flex items-center gap-2">
-                                    <button onClick={() => setIsEditPostModalOpen(true)} className="p-2 text-zinc-400 hover:text-[#f0ac00] transition-colors" title="Editar tema"><Edit className="w-5 h-5" /></button>
-                                    <button onClick={() => setIsDeletePostModalOpen(true)} className="p-2 text-zinc-400 hover:text-red-500 transition-colors" title="Borrar tema"><Trash2 className="w-5 h-5" /></button>
+                                    <button onClick={() => setIsEditPostModalOpen(true)} className="p-2 text-zinc-400 hover:text-[#f0ac00] transition-colors cursor-pointer" title="Editar tema"><Edit className="w-5 h-5" /></button>
+                                    <button onClick={() => setIsDeletePostModalOpen(true)} className="p-2 text-zinc-400 hover:text-red-500 transition-colors cursor-pointer" title="Borrar tema"><Trash2 className="w-5 h-5" /></button>
                                 </div>
                             )}
                         </div>

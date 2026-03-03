@@ -42,14 +42,14 @@ function LoginPage() {
                         <Input
                             placeholder="Email"
                             type="email"
-                            {...register("email", { required: "Ingresar email" })}
+                            {...register("email")}
                             error={signinErrors.find(err => err.field === "email")?.message}
                         />
 
                         <Input
                             placeholder="Contraseña"
                             type="password"
-                            {...register("password", { required: "Ingresar contraseña" })}
+                            {...register("password")}
                             error={signinErrors.find(err => err.field === "password")?.message}
                         />
 

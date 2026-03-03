@@ -79,7 +79,7 @@ function HomePage() {
             <p className="text-zinc-500 text-sm">Discusión general sobre el fútbol y más</p>
           </div>
           {user?.role === 'admin' && (
-            <button onClick={() => setShowCreateModal(true)} className="bg-[#f0ac00] text-black px-5 py-2.5 rounded-xl font-bold hover:bg-[#d49800] transition flex items-center gap-2 shadow-lg">
+            <button onClick={() => setShowCreateModal(true)} className="bg-[#f0ac00] text-black px-5 py-2.5 rounded-xl font-bold hover:bg-[#d49800] transition flex items-center gap-2 shadow-lg cursor-pointer">
               <MessageCirclePlus className="w-5 h-5" /> Nueva Categoría
             </button>
           )}
@@ -132,7 +132,7 @@ function HomePage() {
                 {/* BOTÓN ELIMINAR (Solo Admin) */}
                 {user?.role === 'admin' && (
                   <div className="w-16 flex justify-center">
-                    <button onClick={() => openDeleteModal(cat)} className="p-2 text-zinc-600 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all">
+                  <button onClick={() => openDeleteModal(cat)} className="p-2 text-zinc-600 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all cursor-pointer">
                       <Trash2 className="w-5 h-5" />
                     </button>
                   </div>

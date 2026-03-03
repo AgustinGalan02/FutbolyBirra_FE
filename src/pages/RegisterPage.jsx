@@ -61,20 +61,20 @@ function RegisterPage() {
                     <form onSubmit={onSubmit} className="flex flex-col gap-4">
                         <Input
                             placeholder="Usuario"
-                            {...register("username", { required: "Ingresar usuario" })}
+                            {...register("username")}
                             error={errors.username?.message || registerErrors.find(err => err.field === "username")?.message}
                         />
 
                         <Input
                             placeholder="Email"
-                            {...register("email", { required: "Ingresar email" })}
+                            {...register("email")}
                             error={errors.email?.message || registerErrors.find(err => err.field === "email")?.message}
                         />
 
                         <Input
                             placeholder="Contraseña"
                             type="password"
-                            {...register("password", { required: "Ingresar contraseña" })}
+                            {...register("password")}
                             error={errors.password?.message || registerErrors.find(e => e.field === "password")?.message}
                         />
 
@@ -99,7 +99,7 @@ function RegisterPage() {
                                     )}
                                 />
                             </div>
-                            <input type="hidden" {...register("team", { required: "Elegí un equipo" })} />
+                            <input type="hidden" {...register("team")} />
                             {errors.team && <span className="text-red-500 text-xs ml-1">{errors.team.message}</span>}
                         </div>
 

@@ -140,7 +140,7 @@ function CategoryPage() {
                     {isAuthenticated && (
                         <button
                             onClick={() => setShowModal(true)}
-                            className="bg-[#f0ac00] text-black px-4 py-2 rounded-lg font-bold hover:bg-[#d49800] transition active:scale-95 flex items-center gap-2"
+                            className="bg-[#f0ac00] text-black px-4 py-2 rounded-lg font-bold hover:bg-[#d49800] transition active:scale-95 flex items-center gap-2 cursor-pointer"
                         >
                             <PlusCircle className="w-5 h-5" />
                             <span className="hidden sm:inline">Nuevo Tema</span>

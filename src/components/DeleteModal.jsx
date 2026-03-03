@@ -14,10 +14,10 @@ function DeleteModal({ isOpen, onClose, onConfirm, title, message }) {
         </div>
         <p className="text-zinc-400 mb-6 text-sm">{message}</p>
         <div className="flex gap-3"> {/* botones en fila */}
-          <button onClick={onClose} className="flex-1 px-4 py-2 bg-zinc-700 hover:bg-zinc-600 rounded-xl transition">
+          <button onClick={onClose} className="flex-1 px-4 py-2 bg-zinc-700 hover:bg-zinc-600 rounded-xl transition cursor-pointer">
             Cancelar
           </button>
-          <button onClick={onConfirm} className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 rounded-xl font-bold transition">
+          <button onClick={onConfirm} className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 rounded-xl font-bold transition cursor-pointer">
             Eliminar
           </button>
         </div>

@@ -27,7 +27,7 @@ function Navbar({ showSearch = false, searchTerm = "", setSearchTerm, backTo, ba
             <Link 
               to={backTo || "#"} 
               onClick={handleBack}
-              className="flex items-center gap-2 text-zinc-400 hover:text-[#f0ac00] transition whitespace-nowrap"
+              className="flex items-center gap-2 text-zinc-400 hover:text-[#f0ac00] transition whitespace-nowrap cursor-pointer"
             >
               <ArrowLeft className="w-5 h-5" />
               <span className="font-semibold hidden lg:inline max-w-[150px] truncate">
@@ -59,7 +59,7 @@ function Navbar({ showSearch = false, searchTerm = "", setSearchTerm, backTo, ba
         <div className="justify-self-end flex items-center gap-4">
           {isAuthenticated ? (
             <div className="flex items-center gap-4 bg-zinc-900/30 p-1 pl-3 rounded-lg border border-zinc-700/50">
-              <Link to="/profile" className="flex items-center gap-2 text-zinc-200 hover:text-[#f0ac00] transition">
+              <Link to="/profile" className="flex items-center gap-2 text-zinc-200 hover:text-[#f0ac00] transition cursor-pointer">
                 <User className="w-5 h-5 text-[#f0ac00]" />
                 <span className="font-medium whitespace-nowrap max-w-[100px] truncate">
                   {user?.username}
@@ -68,7 +68,7 @@ function Navbar({ showSearch = false, searchTerm = "", setSearchTerm, backTo, ba
               <div className="w-[1px] h-6 bg-zinc-700 mx-1"></div>
               <button
                 onClick={() => logout()}
-                className="text-zinc-500 hover:text-red-500 transition p-1.5 rounded-md hover:bg-zinc-700/50 flex-shrink-0"
+                className="text-zinc-500 hover:text-red-500 transition p-1.5 rounded-md hover:bg-zinc-700/50 flex-shrink-0 cursor-pointer"
               >
                 <LogOut className="w-5 h-5" />
               </button>

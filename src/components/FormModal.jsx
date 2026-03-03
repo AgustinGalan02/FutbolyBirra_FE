@@ -26,7 +26,7 @@ function FormModal({
           </h2>
           <button
             onClick={onClose}
-            className="text-zinc-400 hover:text-white transition p-1">
+            className="text-zinc-400 hover:text-white transition p-1 cursor-pointer">
             <X className="w-6 h-6" />
           </button>
         </div>
@@ -39,7 +39,7 @@ function FormModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-lg font-bold text-zinc-300 hover:bg-zinc-700 transition">
+              className="px-4 py-2 rounded-lg font-bold text-zinc-300 hover:bg-zinc-700 transition cursor-pointer">
               Cancelar
             </button>
             <Button

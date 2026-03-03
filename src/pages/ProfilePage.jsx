@@ -152,13 +152,13 @@ function ProfilePage() {
               <div className="flex border-b border-zinc-700">
                 <button
                   onClick={() => setActiveTab('posts')}
-                  className={`flex-1 py-4 text-sm font-bold uppercase tracking-wider transition ${activeTab === 'posts' ? 'text-[#f0ac00] border-b-2 border-[#f0ac00] bg-zinc-700/30' : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-750'}`}
+                  className={`flex-1 py-4 text-sm font-bold uppercase tracking-wider transition cursor-pointer ${activeTab === 'posts' ? 'text-[#f0ac00] border-b-2 border-[#f0ac00] bg-zinc-700/30' : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-750'}`}
                 >
                   Mis Temas
                 </button>
                 <button
                   onClick={() => setActiveTab('comments')}
-                  className={`flex-1 py-4 text-sm font-bold uppercase tracking-wider transition ${activeTab === 'comments' ? 'text-[#f0ac00] border-b-2 border-[#f0ac00] bg-zinc-700/30' : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-750'}`}
+                  className={`flex-1 py-4 text-sm font-bold uppercase tracking-wider transition cursor-pointer ${activeTab === 'comments' ? 'text-[#f0ac00] border-b-2 border-[#f0ac00] bg-zinc-700/30' : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-750'}`}
                 >
                   Mis Respuestas
                 </button>
