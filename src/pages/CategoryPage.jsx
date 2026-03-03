@@ -217,7 +217,6 @@ function CategoryPage() {
                             value={newTitle}
                             onChange={(e) => setNewTitle(e.target.value)}
                             className="w-full bg-zinc-900 border border-zinc-600 rounded-lg p-3 text-zinc-200 focus:outline-none focus:border-[#f0ac00] transition-all"
-                            required
                         />
                     </div>
                     <div>
@@ -227,7 +226,6 @@ function CategoryPage() {
                             value={newContent}
                             onChange={(e) => setNewContent(e.target.value)}
                             className="w-full bg-zinc-900 border border-zinc-600 rounded-lg p-3 text-zinc-200 focus:outline-none focus:border-[#f0ac00] transition-all resize-y"
-                            required
                         />
                     </div>
                 </div>

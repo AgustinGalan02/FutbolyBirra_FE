@@ -132,7 +132,7 @@ function HomePage() {
                 {/* BOTÓN ELIMINAR (Solo Admin) */}
                 {user?.role === 'admin' && (
                   <div className="w-16 flex justify-center">
-                  <button onClick={() => openDeleteModal(cat)} className="p-2 text-zinc-600 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all cursor-pointer">
+                    <button onClick={() => openDeleteModal(cat)} className="p-2 text-zinc-600 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all cursor-pointer">
                       <Trash2 className="w-5 h-5" />
                     </button>
                   </div>
@@ -157,8 +157,8 @@ function HomePage() {
         submitLabel="Crear"
       >
         <div className="space-y-4">
-          <input type="text" placeholder="Título" value={newCat.title} onChange={e => setNewCat({ ...newCat, title: e.target.value })} className="w-full bg-zinc-900 border border-zinc-700 rounded-xl p-3 text-white outline-none focus:ring-1 focus:ring-[#f0ac00]" required />
-          <textarea placeholder="Descripción" value={newCat.description} onChange={e => setNewCat({ ...newCat, description: e.target.value })} className="w-full bg-zinc-900 border border-zinc-700 rounded-xl p-3 text-white outline-none focus:ring-1 focus:ring-[#f0ac00] resize-none" rows="3" required />
+          <input type="text" placeholder="Título" value={newCat.title} onChange={e => setNewCat({ ...newCat, title: e.target.value })} className="w-full bg-zinc-900 border border-zinc-700 rounded-xl p-3 text-white outline-none focus:ring-1 focus:ring-[#f0ac00]" />
+          <textarea placeholder="Descripción" value={newCat.description} onChange={e => setNewCat({ ...newCat, description: e.target.value })} className="w-full bg-zinc-900 border border-zinc-700 rounded-xl p-3 text-white outline-none focus:ring-1 focus:ring-[#f0ac00] resize-none" rows="3" />
         </div>
       </FormModal>
 
