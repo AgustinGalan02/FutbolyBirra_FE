@@ -215,7 +215,7 @@ function PostPage() {
                     <div className="p-6 bg-zinc-900/50 border-t border-zinc-700">
                         {isAuthenticated ? (
                             <form onSubmit={handleCommentSubmit} className="flex flex-col gap-3">
-                                <textarea rows="3" value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Escribí lo que pensás acá..." className="w-full bg-zinc-900 border border-zinc-600 rounded-lg p-3 text-zinc-200 focus:outline-none focus:border-[#f0ac00] transition-all" required />
+                                <textarea rows="3" value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Escribí lo que pensás acá..." className="w-full bg-zinc-900 border border-zinc-600 rounded-lg p-3 text-zinc-200 focus:outline-none focus:border-[#f0ac00] transition-all" />
                                 <div className="flex justify-end"><Button type="submit" disabled={isSubmitting || !newComment.trim()} className="flex items-center gap-2 px-6">{isSubmitting ? 'Publicando...' : <><Send className="w-4 h-4" />Responder</>}</Button></div>
                             </form>
                         ) : (

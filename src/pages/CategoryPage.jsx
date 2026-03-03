@@ -4,7 +4,7 @@ import { getPostsByCategoryRequest, createPostRequest } from '../api/posts';
 import { getCategoryRequest } from '../api/categories';
 import { ARGENTINE_TEAMS_LOCAL } from '../api/teamsData';
 import { useAuth } from '../context/AuthContext';
-import { MessageSquare, Shield, Clock, PlusCircle, User } from 'lucide-react';
+import { MessageSquare, Shield, Clock, PlusCircle } from 'lucide-react';
 import '../index.css';
 import { Footer, FormModal, Navbar, LoadingSpinner, FormatDate } from '../components/';
 

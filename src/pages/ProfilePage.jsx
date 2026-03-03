@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from "../context/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
-import { User, Mail, Shield, MessageSquare, LogOut, Activity, ArrowLeft } from 'lucide-react';
+import { User, Mail, Shield, MessageSquare, LogOut, Activity } from 'lucide-react';
 import { getMyPostsRequest, getMyCommentsRequest } from '../api/profile';
 import { ARGENTINE_TEAMS_LOCAL } from '../api/teamsData';
 import { Navbar, LoadingSpinner, Button, FormatDate } from '../components/';
