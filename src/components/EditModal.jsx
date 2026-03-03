@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { Button } from './Button';
 
 // Modal para editar posts o comentarios
-function EditModal({ isOpen, onClose, onSave, post }) { 
+function EditModal({ isOpen, onClose, onSave, post, errors = [] }) { 
     const [editTitle, setEditTitle] = useState(""); // titulo del post (solo posts)
     const [editContent, setEditContent] = useState(""); // contenido a editar
 
@@ -21,6 +21,10 @@ function EditModal({ isOpen, onClose, onSave, post }) {
         onSave(editTitle, editContent); // pasa titulo y contenido al componente padre
     };
 
+    const titleError = errors.find(e => e.field === "title")?.message;
+    const contentError = errors.find(e => e.field === "content")?.message;
+    const generalError = errors.find(e => !e.field)?.message;
+
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
             <div className="bg-zinc-800 border border-zinc-700 rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
@@ -33,6 +37,12 @@ function EditModal({ isOpen, onClose, onSave, post }) {
                 </div>
 
                 <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-4">
+                    {generalError && (
+                        <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
+                            <span className="text-red-500 text-sm font-medium">{generalError}</span>
+                        </div>
+                    )}
+
                     {post?.title !== undefined && ( // muestra input de titulo solo si es un post (tiene title)
                         <div>
                             <label className="block text-sm font-semibold text-zinc-400 mb-2">Título del tema</label>
@@ -40,8 +50,9 @@ function EditModal({ isOpen, onClose, onSave, post }) {
                                 type="text"
                                 value={editTitle}
                                 onChange={(e) => setEditTitle(e.target.value)}
-                                className="w-full bg-zinc-900 border border-zinc-600 rounded-lg p-3 text-zinc-200 focus:outline-none focus:border-[#f0ac00] transition-all"
+                                className={`w-full bg-zinc-900 border rounded-lg p-3 text-zinc-200 focus:outline-none transition-all ${titleError ? 'border-red-500 focus:border-red-500' : 'border-zinc-600 focus:border-[#f0ac00]'}`}
                             />
+                            {titleError && <span className="text-red-500 text-xs font-medium mt-1 block">{titleError}</span>}
                         </div>
                     )}
 
@@ -53,8 +64,9 @@ function EditModal({ isOpen, onClose, onSave, post }) {
                             rows="6"
                             value={editContent}
                             onChange={(e) => setEditContent(e.target.value)}
-                            className="w-full bg-zinc-900 border border-zinc-600 rounded-lg p-3 text-zinc-200 focus:outline-none focus:border-[#f0ac00] transition-all resize-y"
+                            className={`w-full bg-zinc-900 border rounded-lg p-3 text-zinc-200 focus:outline-none transition-all resize-y ${contentError ? 'border-red-500 focus:border-red-500' : 'border-zinc-600 focus:border-[#f0ac00]'}`}
                         />
+                        {contentError && <span className="text-red-500 text-xs font-medium mt-1 block">{contentError}</span>}
                     </div>
 
                     <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-zinc-700">

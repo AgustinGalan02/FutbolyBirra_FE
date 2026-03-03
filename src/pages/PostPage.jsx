@@ -24,6 +24,8 @@ function PostPage() {
 
     const [newComment, setNewComment] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [commentError, setCommentError] = useState("");
+    const [editErrors, setEditErrors] = useState([]);
 
     // --- LÓGICA DE POSTS ---
     const handleDeletePost = async () => {
@@ -38,6 +40,7 @@ function PostPage() {
 
     const handleUpdatePost = async (newTitle, newContent) => {
         try {
+            setEditErrors([]);
             const res = await updatePostRequest(post._id, { title: newTitle, content: newContent });
             setPost({
                 ...res.data,
@@ -46,7 +49,12 @@ function PostPage() {
             });
             setIsEditPostModalOpen(false);
         } catch (error) {
-            console.error("Error al editar el post:", error);
+            const serverErrors = error.response?.data;
+            if (Array.isArray(serverErrors)) {
+                setEditErrors(serverErrors);
+            } else {
+                setEditErrors([{ message: serverErrors?.message || "Error al editar el post" }]);
+            }
         }
     };
 
@@ -64,18 +72,28 @@ function PostPage() {
 
     const handleCommentSubmit = async (e) => {
         e.preventDefault();
-        if (!newComment.trim()) return;
+        setCommentError("");
+        if (!newComment.trim()) {
+            setCommentError("El comentario no puede estar vacío");
+            return;
+        }
         setIsSubmitting(true);
         try {
             const res = await createCommentRequest({ content: newComment, post: id });
-            // Agregamos el comentario a la lista con la info del usuario actual
             setComments([...comments, {
                 ...res.data,
                 author: { _id: user.id, username: user.username, team: user.team }
             }]);
             setNewComment("");
+            setCommentError("");
         } catch (error) {
-            console.error(error);
+            const serverErrors = error.response?.data;
+            if (Array.isArray(serverErrors)) {
+                const contentErr = serverErrors.find(e => e.field === "content");
+                setCommentError(contentErr?.message || serverErrors[0]?.message || "Error al publicar");
+            } else {
+                setCommentError(serverErrors?.message || "Error al publicar el comentario");
+            }
         } finally {
             setIsSubmitting(false);
         }
@@ -134,7 +152,7 @@ function PostPage() {
                             <h1 className="text-3xl font-bold text-white">{post.title}</h1>
                             {userId === post.author?._id && (
                                 <div className="flex items-center gap-2">
-                                    <button onClick={() => setIsEditPostModalOpen(true)} className="p-2 text-zinc-400 hover:text-[#f0ac00] transition-colors cursor-pointer" title="Editar tema"><Edit className="w-5 h-5" /></button>
+                                    <button onClick={() => { setEditErrors([]); setIsEditPostModalOpen(true); }} className="p-2 text-zinc-400 hover:text-[#f0ac00] transition-colors cursor-pointer" title="Editar tema"><Edit className="w-5 h-5" /></button>
                                     <button onClick={() => setIsDeletePostModalOpen(true)} className="p-2 text-zinc-400 hover:text-red-500 transition-colors cursor-pointer" title="Borrar tema"><Trash2 className="w-5 h-5" /></button>
                                 </div>
                             )}
@@ -215,8 +233,21 @@ function PostPage() {
                     <div className="p-6 bg-zinc-900/50 border-t border-zinc-700">
                         {isAuthenticated ? (
                             <form onSubmit={handleCommentSubmit} className="flex flex-col gap-3">
-                                <textarea rows="3" value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Escribí lo que pensás acá..." className="w-full bg-zinc-900 border border-zinc-600 rounded-lg p-3 text-zinc-200 focus:outline-none focus:border-[#f0ac00] transition-all" />
-                                <div className="flex justify-end"><Button type="submit" disabled={isSubmitting || !newComment.trim()} className="flex items-center gap-2 px-6">{isSubmitting ? 'Publicando...' : <><Send className="w-4 h-4" />Responder</>}</Button></div>
+                                <textarea
+                                    rows="3"
+                                    value={newComment}
+                                    onChange={(e) => { setNewComment(e.target.value); setCommentError(""); }}
+                                    placeholder="Escribí lo que pensás acá..."
+                                    className={`w-full bg-zinc-900 border rounded-lg p-3 text-zinc-200 focus:outline-none transition-all ${commentError ? 'border-red-500 focus:border-red-500' : 'border-zinc-600 focus:border-[#f0ac00]'}`}
+                                />
+                                {commentError && (
+                                    <span className="text-red-500 text-xs font-medium">{commentError}</span>
+                                )}
+                                <div className="flex justify-end">
+                                    <Button type="submit" disabled={isSubmitting || !newComment.trim()} className="flex items-center gap-2 px-6">
+                                        {isSubmitting ? 'Publicando...' : <><Send className="w-4 h-4" />Responder</>}
+                                    </Button>
+                                </div>
                             </form>
                         ) : (
                             <Link to="/register" className="bg-[#f0ac00]/10 border border-[#f0ac00]/30 p-4 rounded-xl flex items-center justify-center gap-3 hover:bg-[#f0ac00]/20 transition-all group"><User className="w-5 h-5 text-[#f0ac00]" /><p className="text-[#f0ac00] font-medium">¡Registrate para responder posts!</p></Link>
@@ -245,9 +276,10 @@ function PostPage() {
 
             <EditModal
                 isOpen={isEditPostModalOpen}
-                onClose={() => setIsEditPostModalOpen(false)}
+                onClose={() => { setIsEditPostModalOpen(false); setEditErrors([]); }}
                 post={post}
                 onSave={handleUpdatePost}
+                errors={editErrors}
             />
         </div>
     );

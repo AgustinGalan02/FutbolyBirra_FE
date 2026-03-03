@@ -22,6 +22,7 @@ function CategoryPage() {
     const [newTitle, setNewTitle] = useState("");
     const [newContent, setNewContent] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [formErrors, setFormErrors] = useState([]);
 
     useEffect(() => {
         const loadCategoryData = async () => {
@@ -43,7 +44,16 @@ function CategoryPage() {
 
     const handleCreatePost = async (e) => {
         e.preventDefault();
-        if (!newTitle.trim() || !newContent.trim()) return;
+        setFormErrors([]);
+
+        // Validación local rápida
+        const localErrors = [];
+        if (!newTitle.trim()) localErrors.push({ field: "title", message: "El título no puede estar vacío" });
+        if (!newContent.trim()) localErrors.push({ field: "content", message: "El contenido no puede estar vacío" });
+        if (localErrors.length > 0) {
+            setFormErrors(localErrors);
+            return;
+        }
 
         setIsSubmitting(true);
         try {
@@ -58,13 +68,17 @@ function CategoryPage() {
             };
             setPosts([newPostToAdd, ...posts]);
 
-            // Limpiamos y cerramos
             setNewTitle("");
             setNewContent("");
+            setFormErrors([]);
             setShowModal(false);
         } catch (error) {
-            const errorMessage = error.response?.data?.message || "Error al crear el tema.";
-            setErrors([errorMessage]);
+            const serverErrors = error.response?.data;
+            if (Array.isArray(serverErrors)) {
+                setFormErrors(serverErrors);
+            } else {
+                setFormErrors([{ message: serverErrors?.message || "Error al crear el tema" }]);
+            }
         } finally {
             setIsSubmitting(false);
         }
@@ -81,6 +95,10 @@ function CategoryPage() {
             logo: null
         };
     };
+
+    const titleError = formErrors.find(e => e.field === "title")?.message;
+    const contentError = formErrors.find(e => e.field === "content")?.message;
+    const generalError = formErrors.find(e => !e.field)?.message;
 
     if (isLoading) {
         return (
@@ -139,7 +157,7 @@ function CategoryPage() {
 
                     {isAuthenticated && (
                         <button
-                            onClick={() => setShowModal(true)}
+                            onClick={() => { setShowModal(true); setFormErrors([]); }}
                             className="bg-[#f0ac00] text-black px-4 py-2 rounded-lg font-bold hover:bg-[#d49800] transition active:scale-95 flex items-center gap-2 cursor-pointer"
                         >
                             <PlusCircle className="w-5 h-5" />
@@ -201,7 +219,7 @@ function CategoryPage() {
             {/* MODAL PARA NUEVO TEMA */}
             <FormModal
                 isOpen={showModal}
-                onClose={() => setShowModal(false)}
+                onClose={() => { setShowModal(false); setFormErrors([]); }}
                 onSubmit={handleCreatePost}
                 title="Crear un Nuevo Tema"
                 icon={PlusCircle}
@@ -210,23 +228,30 @@ function CategoryPage() {
                 isDisabled={!newTitle.trim() || !newContent.trim()}
             >
                 <div className="space-y-4">
+                    {generalError && (
+                        <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
+                            <span className="text-red-500 text-sm font-medium">{generalError}</span>
+                        </div>
+                    )}
                     <div>
                         <label className="block text-sm font-semibold text-zinc-400 mb-2">Título del tema</label>
                         <input
                             type="text"
                             value={newTitle}
-                            onChange={(e) => setNewTitle(e.target.value)}
-                            className="w-full bg-zinc-900 border border-zinc-600 rounded-lg p-3 text-zinc-200 focus:outline-none focus:border-[#f0ac00] transition-all"
+                            onChange={(e) => { setNewTitle(e.target.value); setFormErrors(prev => prev.filter(err => err.field !== "title")); }}
+                            className={`w-full bg-zinc-900 border rounded-lg p-3 text-zinc-200 focus:outline-none transition-all ${titleError ? 'border-red-500 focus:border-red-500' : 'border-zinc-600 focus:border-[#f0ac00]'}`}
                         />
+                        {titleError && <span className="text-red-500 text-xs font-medium mt-1 block">{titleError}</span>}
                     </div>
                     <div>
                         <label className="block text-sm font-semibold text-zinc-400 mb-2">Contenido</label>
                         <textarea
                             rows="6"
                             value={newContent}
-                            onChange={(e) => setNewContent(e.target.value)}
-                            className="w-full bg-zinc-900 border border-zinc-600 rounded-lg p-3 text-zinc-200 focus:outline-none focus:border-[#f0ac00] transition-all resize-y"
+                            onChange={(e) => { setNewContent(e.target.value); setFormErrors(prev => prev.filter(err => err.field !== "content")); }}
+                            className={`w-full bg-zinc-900 border rounded-lg p-3 text-zinc-200 focus:outline-none transition-all resize-y ${contentError ? 'border-red-500 focus:border-red-500' : 'border-zinc-600 focus:border-[#f0ac00]'}`}
                         />
+                        {contentError && <span className="text-red-500 text-xs font-medium mt-1 block">{contentError}</span>}
                     </div>
                 </div>
             </FormModal>
