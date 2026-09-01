@@ -236,11 +236,11 @@ function ProfilePage() {
                 ) : (
                   <>
                     <Link
-                      to="/messages"
+                      to={`/messages?with=${profileUser?.username}`}
                       className="w-full bg-[#f0ac00] hover:bg-[#d49800] text-black font-bold py-2.5 px-4 rounded-lg transition flex items-center justify-center gap-2"
                     >
                       <Send className="w-4 h-4" />
-                      Enviar Mensaje
+                      {isFriend ? "Enviar Mensaje" : "Enviar Solicitud de Mensaje"}
                     </Link>
 
                     {isAuthenticated && (
