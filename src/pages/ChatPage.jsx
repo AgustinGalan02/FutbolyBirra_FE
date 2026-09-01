@@ -1,261 +1,361 @@
-import { useEffect, useState, useRef } from 'react';
-import { useChat } from '../context/ChatContext';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { getConversationsRequest, acceptConversationRequest } from '../api/conversations';
+import { getMessagesRequest, sendMessageRequest } from '../api/messages';
+import { getFriendsRequest } from '../api/friends';
+import { Navbar, Footer, LoadingSpinner } from '../components';
+import {
+    MessageSquare,
+    Send,
+    User,
+    Users,
+    Inbox,
+    Check,
+    AlertCircle,
+    Clock
+} from 'lucide-react';
 
-export default function ChatPage() {
-    const { user } = useAuth();
-    const {
-        conversations,
-        loadConversations,
-        activeConversation,
-        setActiveConversation,
-        messages,
-        loadMessages,
-        sendMessage,
-        blockUser,
-        deleteConversationRequest,
-        errors
-    } = useChat();
+function ChatPage() {
+    const { user, isAuthenticated } = useAuth();
+    const [searchParams, setSearchParams] = useSearchParams();
+    const targetUserFromUrl = searchParams.get('with');
 
-    const [newMessage, setNewMessage] = useState('');
-    const [newReceiver, setNewReceiver] = useState('');
-    const [isStartingNewChat, setIsStartingNewChat] = useState(false);
+    const [conversations, setConversations] = useState([]);
+    const [friends, setFriends] = useState([]);
+    const [activeChatUser, setActiveChatUser] = useState(targetUserFromUrl || null);
+    const [activeConversation, setActiveConversation] = useState(null);
+    const [messages, setMessages] = useState([]);
+    const [text, setText] = useState('');
+    const [loading, setLoading] = useState(true);
+    const [sending, setSending] = useState(false);
+    const [errorMsg, setErrorMsg] = useState('');
+
+    const [tab, setTab] = useState('friends');
     const messagesEndRef = useRef(null);
 
-    // Cargar lista de conversaciones al montar el componente
-    useEffect(() => {
-        loadConversations();
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    };
+
+    // Cargar lista de amigos y conversaciones
+    const loadData = useCallback(async () => {
+        if (!isAuthenticated) return;
+        try {
+            const [convRes, friendsRes] = await Promise.all([
+                getConversationsRequest(),
+                getFriendsRequest()
+            ]);
+            const convList = convRes.data || [];
+            setConversations(convList);
+            setFriends(friendsRes.data?.friends || []);
+            return convList;
+        } catch (err) {
+            console.error("Error al cargar datos de chat:", err);
+            return [];
+        }
+    }, [isAuthenticated]);
+
+    // Cargar mensajes del chat activo
+    const fetchActiveMessages = useCallback(async (targetUsername, currentConvs) => {
+        if (!targetUsername) return;
+        const conv = currentConvs.find(c => c.members.includes(targetUsername));
+        if (conv) {
+            setActiveConversation(conv);
+            try {
+                const msgRes = await getMessagesRequest(conv._id);
+                setMessages(msgRes.data || []);
+            } catch (err) {
+                console.error("Error al traer mensajes:", err);
+            }
+        } else {
+            setActiveConversation(null);
+            setMessages([]);
+        }
     }, []);
 
-    // Cargar mensajes al cambiar la conversación activa
+    // Carga inicial
     useEffect(() => {
-        if (activeConversation?._id) {
-            loadMessages(activeConversation._id);
+        async function init() {
+            setLoading(true);
+            const convList = await loadData();
+            if (targetUserFromUrl) {
+                setActiveChatUser(targetUserFromUrl);
+                await fetchActiveMessages(targetUserFromUrl, convList);
+            }
+            setLoading(false);
         }
-    }, [activeConversation]);
+        init();
+    }, [loadData, targetUserFromUrl, fetchActiveMessages]);
 
-    // Scroll automático al último mensaje
+    // Polling cada 2.5 segundos para sincronizar ambos navegadores
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        if (!isAuthenticated) return;
+
+        const interval = setInterval(async () => {
+            try {
+                const convRes = await getConversationsRequest();
+                const convList = convRes.data || [];
+                setConversations(convList);
+
+                if (activeChatUser) {
+                    const conv = convList.find(c => c.members.includes(activeChatUser));
+                    if (conv) {
+                        setActiveConversation(conv);
+                        const msgRes = await getMessagesRequest(conv._id);
+                        setMessages(msgRes.data || []);
+                    }
+                }
+            } catch (err) {
+                console.error("Error en sincronización:", err);
+            }
+        }, 2500);
+
+        return () => clearInterval(interval);
+    }, [isAuthenticated, activeChatUser]);
+
+    useEffect(() => {
+        scrollToBottom();
     }, [messages]);
 
-    // Obtener el nombre del otro usuario en la conversación
-    const getOtherMember = (members = []) => {
-        return members.find((m) => m !== user?.username) || 'Usuario';
+    const selectUserToChat = async (targetUsername) => {
+        setErrorMsg('');
+        setActiveChatUser(targetUsername);
+        setSearchParams({ with: targetUsername });
+        await fetchActiveMessages(targetUsername, conversations);
     };
 
     const handleSendMessage = async (e) => {
         e.preventDefault();
-        if (!newMessage.trim()) return;
+        if (!text.trim() || !activeChatUser || sending) return;
 
+        setSending(true);
+        setErrorMsg('');
         try {
-            const receiver = isStartingNewChat
-                ? newReceiver.trim()
-                : getOtherMember(activeConversation?.members);
-
-            await sendMessage({
-                receiver,
-                content: newMessage,
+            const res = await sendMessageRequest({
+                receiver: activeChatUser,
+                content: text.trim(),
                 conversationId: activeConversation?._id
             });
 
-            setNewMessage('');
-            if (isStartingNewChat) {
-                setIsStartingNewChat(false);
-                setNewReceiver('');
+            setMessages(prev => [...prev, res.data.message]);
+            setText('');
+
+            if (!activeConversation && res.data.conversation) {
+                setActiveConversation(res.data.conversation);
+            }
+
+            const convRes = await getConversationsRequest();
+            setConversations(convRes.data || []);
+        } catch (err) {
+            setErrorMsg(err.response?.data?.message || 'Error al enviar mensaje');
+        } finally {
+            setSending(false);
+        }
+    };
+
+    const handleAcceptRequest = async (convId) => {
+        try {
+            const res = await acceptConversationRequest(convId);
+            setConversations(prev => prev.map(c => c._id === convId ? res.data.conversation : c));
+            if (activeConversation?._id === convId) {
+                setActiveConversation(res.data.conversation);
             }
         } catch (err) {
             console.error(err);
         }
     };
 
-    const handleBlockUser = async () => {
-        const target = getOtherMember(activeConversation?.members);
-        if (window.confirm(`¿Estás seguro de que deseas bloquear a ${target}?`)) {
-            await blockUser(target);
-        }
-    };
+    const isFriend = friends.some(f => f.username === activeChatUser);
+    const isPending = activeConversation?.status === 'pending';
+    const isInitiator = activeConversation?.initiatedBy === user?.username;
+    const hasSentOneMessage = messages.filter(m => m.sender === user?.username).length >= 1;
+    const isBlockedFromSending = !isFriend && isPending && isInitiator && hasSentOneMessage;
 
-    const handleDeleteChat = async () => {
-        if (window.confirm('¿Deseas eliminar esta conversación y todo su historial?')) {
-            await deleteConversation(activeConversation._id);
-        }
-    };
+    const pendingRequests = conversations.filter(c => c.status === 'pending' && c.initiatedBy !== user?.username);
+
+    if (loading) return <div className="min-h-screen bg-zinc-900 flex items-center justify-center"><LoadingSpinner /></div>;
 
     return (
-        <div className="max-w-6xl mx-auto my-6 p-4">
-            <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden shadow-2xl flex h-[650px]">
+        <div className="min-h-screen bg-zinc-900 text-zinc-200 flex flex-col font-sans">
+            <Navbar backTo="/" backLabel="Volver" />
 
-                {/* PANEL LATERAL: Lista de Conversaciones */}
-                <div className="w-1/3 border-r border-zinc-800 flex flex-col bg-zinc-950">
-                    <div className="p-4 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/50">
-                        <h2 className="text-xl font-bold text-white tracking-wide">Mensajes</h2>
+            <main className="max-w-6xl mx-auto p-4 flex-grow w-full grid grid-cols-1 md:grid-cols-3 gap-4 h-[calc(100vh-140px)]">
+
+                {/* PANEL LATERAL */}
+                <div className="bg-zinc-800 border border-zinc-700 rounded-xl flex flex-col overflow-hidden">
+
+                    <div className="flex border-b border-zinc-700 bg-zinc-900/40">
                         <button
-                            onClick={() => {
-                                setIsStartingNewChat(true);
-                                setActiveConversation(null);
-                            }}
-                            className="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold px-3 py-1.5 rounded-lg transition"
+                            onClick={() => setTab('friends')}
+                            className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition ${tab === 'friends' ? 'text-[#f0ac00] border-b-2 border-[#f0ac00] bg-zinc-700/30' : 'text-zinc-500 hover:text-zinc-300'}`}
                         >
-                            + Nuevo Chat
+                            <Users className="w-4 h-4" /> Amigos
+                        </button>
+                        <button
+                            onClick={() => setTab('requests')}
+                            className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition relative ${tab === 'requests' ? 'text-[#f0ac00] border-b-2 border-[#f0ac00] bg-zinc-700/30' : 'text-zinc-500 hover:text-zinc-300'}`}
+                        >
+                            <Inbox className="w-4 h-4" /> Solicitudes
+                            {pendingRequests.length > 0 && (
+                                <span className="bg-[#f0ac00] text-black text-[10px] px-1.5 py-0.5 rounded-full font-bold">
+                                    {pendingRequests.length}
+                                </span>
+                            )}
                         </button>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto divide-y divide-zinc-900">
-                        {conversations.length === 0 ? (
-                            <p className="text-zinc-500 text-center text-sm mt-8">No tienes conversaciones activas</p>
-                        ) : (
-                            conversations.map((conv) => {
-                                const otherUser = getOtherMember(conv.members);
-                                const isSelected = activeConversation?._id === conv._id;
-                                return (
-                                    <div
-                                        key={conv._id}
-                                        onClick={() => {
-                                            setIsStartingNewChat(false);
-                                            setActiveConversation(conv);
-                                        }}
-                                        className={`p-4 cursor-pointer transition flex items-center justify-between ${isSelected ? 'bg-zinc-800/80 border-l-4 border-emerald-500' : 'hover:bg-zinc-900'
-                                            }`}
-                                    >
-                                        <div>
-                                            <h3 className="font-semibold text-zinc-200">{otherUser}</h3>
-                                            <p className="text-xs text-zinc-500 mt-0.5">
-                                                {new Date(conv.fechaUltimaActualizacion).toLocaleDateString()}
-                                            </p>
+                    <div className="flex-grow overflow-y-auto divide-y divide-zinc-700/50">
+                        {tab === 'friends' ? (
+                            friends.length === 0 ? (
+                                <div className="p-6 text-center text-zinc-500 text-xs">
+                                    No tenés amigos agregados aún para chatear.
+                                </div>
+                            ) : (
+                                friends.map(friend => {
+                                    const isSelected = activeChatUser === friend.username;
+                                    return (
+                                        <div
+                                            key={friend._id || friend.id}
+                                            onClick={() => selectUserToChat(friend.username)}
+                                            className={`p-3.5 flex items-center gap-3 cursor-pointer transition ${isSelected ? 'bg-[#f0ac00]/10 border-l-4 border-[#f0ac00]' : 'hover:bg-zinc-750'}`}
+                                        >
+                                            <div className="w-9 h-9 rounded-full bg-zinc-700 flex items-center justify-center text-[#f0ac00] font-bold">
+                                                <User className="w-4 h-4" />
+                                            </div>
+                                            <div className="flex-1 truncate">
+                                                <p className="font-semibold text-sm text-zinc-200">@{friend.username}</p>
+                                                <p className="text-[11px] text-zinc-500">{friend.team || 'Neutral'}</p>
+                                            </div>
                                         </div>
-                                    </div>
-                                );
-                            })
+                                    );
+                                })
+                            )
+                        ) : (
+                            pendingRequests.length === 0 ? (
+                                <div className="p-6 text-center text-zinc-500 text-xs">
+                                    No tenés solicitudes de mensajes pendientes.
+                                </div>
+                            ) : (
+                                pendingRequests.map(reqConv => {
+                                    const otherUser = reqConv.members.find(m => m !== user?.username);
+                                    const isSelected = activeChatUser === otherUser;
+                                    return (
+                                        <div
+                                            key={reqConv._id}
+                                            onClick={() => selectUserToChat(otherUser)}
+                                            className={`p-3 flex items-center justify-between cursor-pointer transition ${isSelected ? 'bg-[#f0ac00]/10 border-l-4 border-[#f0ac00]' : 'hover:bg-zinc-750'}`}
+                                        >
+                                            <div className="truncate">
+                                                <p className="font-semibold text-sm text-zinc-200">@{otherUser}</p>
+                                                <p className="text-[10px] text-amber-500 flex items-center gap-1">
+                                                    <Clock className="w-3 h-3" /> Solicitud pendiente
+                                                </p>
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            )
                         )}
                     </div>
                 </div>
 
-                {/* PANEL CENTRAL: Chat Activo */}
-                <div className="w-2/3 flex flex-col bg-zinc-900">
-                    {isStartingNewChat ? (
-                        /* Vista para redactar a un nuevo usuario */
-                        <div className="flex flex-col h-full">
-                            <div className="p-4 border-b border-zinc-800 bg-zinc-950/40">
-                                <label className="text-xs text-zinc-400 block mb-1">Para (Username):</label>
-                                <input
-                                    type="text"
-                                    value={newReceiver}
-                                    onChange={(e) => setNewReceiver(e.target.value)}
-                                    placeholder="Ej. lautaro99"
-                                    className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-emerald-500"
-                                />
-                            </div>
-
-                            <div className="flex-1 p-4 flex items-center justify-center text-zinc-500 text-sm">
-                                Escribe un mensaje abajo para iniciar la conversación.
-                            </div>
-
-                            {errors.length > 0 && (
-                                <div className="p-2 mx-4 bg-red-900/40 border border-red-700 text-red-300 text-xs rounded">
-                                    {errors[0]}
+                {/* SALA DE CHAT */}
+                <div className="md:col-span-2 bg-zinc-800 border border-zinc-700 rounded-xl flex flex-col overflow-hidden">
+                    {activeChatUser ? (
+                        <>
+                            {/* Header */}
+                            <div className="p-3.5 border-b border-zinc-700 bg-zinc-750 flex items-center justify-between">
+                                <div className="flex items-center gap-2.5">
+                                    <div className="w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center text-[#f0ac00] border border-[#f0ac00]/50 font-bold text-xs">
+                                        {activeChatUser.charAt(0).toUpperCase()}
+                                    </div>
+                                    <div>
+                                        <Link to={`/profile/${activeChatUser}`} className="font-bold text-sm text-white hover:text-[#f0ac00] hover:underline transition">
+                                            @{activeChatUser}
+                                        </Link>
+                                        <span className="block text-[10px] text-zinc-400">
+                                            {isFriend ? 'Amigos' : 'No es tu amigo'}
+                                        </span>
+                                    </div>
                                 </div>
-                            )}
 
-                            <form onSubmit={handleSendMessage} className="p-4 border-t border-zinc-800 flex gap-2">
-                                <input
-                                    type="text"
-                                    value={newMessage}
-                                    onChange={(e) => setNewMessage(e.target.value)}
-                                    placeholder="Escribe el primer mensaje..."
-                                    className="flex-1 bg-zinc-800 border border-zinc-700 text-white rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-500"
-                                />
-                                <button
-                                    type="submit"
-                                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-5 py-2.5 rounded-lg text-sm transition"
-                                >
-                                    Enviar
-                                </button>
-                            </form>
-                        </div>
-                    ) : activeConversation ? (
-                        /* Vista del chat seleccionado */
-                        <div className="flex flex-col h-full">
-                            {/* Header del chat */}
-                            <div className="p-4 border-b border-zinc-800 flex justify-between items-center bg-zinc-950/40">
-                                <span className="font-semibold text-white">
-                                    {getOtherMember(activeConversation.members)}
-                                </span>
-                                <div className="flex gap-2">
+                                {isPending && !isInitiator && (
                                     <button
-                                        onClick={handleBlockUser}
-                                        className="text-xs text-amber-400 hover:text-amber-300 px-2 py-1 rounded bg-amber-950/40 border border-amber-800 transition"
+                                        onClick={() => handleAcceptRequest(activeConversation?._id)}
+                                        className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-1.5 rounded-md font-bold flex items-center gap-1.5 transition cursor-pointer"
                                     >
-                                        Bloquear
+                                        <Check className="w-3.5 h-3.5" /> Aceptar Mensaje
                                     </button>
-                                    <button
-                                        onClick={handleDeleteChat}
-                                        className="text-xs text-red-400 hover:text-red-300 px-2 py-1 rounded bg-red-950/40 border border-red-800 transition"
-                                    >
-                                        Eliminar Chat
-                                    </button>
-                                </div>
+                                )}
                             </div>
 
-                            {/* Contenedor de Mensajes */}
-                            <div className="flex-1 p-4 overflow-y-auto space-y-3">
-                                {messages.map((msg) => {
-                                    const isMine = msg.sender === user?.username;
-                                    return (
-                                        <div
-                                            key={msg._id}
-                                            className={`flex flex-col ${isMine ? 'items-end' : 'items-start'}`}
-                                        >
-                                            <div
-                                                className={`max-w-[70%] px-4 py-2.5 rounded-2xl text-sm ${isMine
-                                                    ? 'bg-emerald-600 text-white rounded-br-none'
-                                                    : 'bg-zinc-800 text-zinc-200 rounded-bl-none border border-zinc-700'
-                                                    }`}
-                                            >
-                                                {msg.content}
+                            {/* Mensajes */}
+                            <div className="flex-grow p-4 overflow-y-auto space-y-3 bg-zinc-900/30">
+                                {messages.length === 0 ? (
+                                    <div className="h-full flex items-center justify-center text-zinc-500 text-xs">
+                                        No hay mensajes en esta conversación. ¡Iniciá el chat!
+                                    </div>
+                                ) : (
+                                    messages.map(m => {
+                                        const isMe = m.sender === user?.username;
+                                        return (
+                                            <div key={m._id || m.createdAt} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                                                <div className={`max-w-[70%] p-3 rounded-xl text-sm ${isMe ? 'bg-[#f0ac00] text-black font-medium' : 'bg-zinc-700 text-zinc-100'}`}>
+                                                    <p>{m.content}</p>
+                                                </div>
                                             </div>
-                                            <span className="text-[10px] text-zinc-500 mt-1 px-1">
-                                                {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                            </span>
-                                        </div>
-                                    );
-                                })}
+                                        );
+                                    })
+                                )}
                                 <div ref={messagesEndRef} />
                             </div>
 
-                            {errors.length > 0 && (
-                                <div className="p-2 mx-4 bg-red-900/40 border border-red-700 text-red-300 text-xs rounded">
-                                    {errors[0]}
-                                </div>
-                            )}
+                            {/* Input */}
+                            <div className="p-3 border-t border-zinc-700 bg-zinc-800">
+                                {errorMsg && (
+                                    <div className="mb-2 p-2 bg-red-500/10 border border-red-500/30 rounded text-red-400 text-xs flex items-center gap-1.5">
+                                        <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" /> {errorMsg}
+                                    </div>
+                                )}
 
-                            {/* Input para enviar mensaje */}
-                            <form onSubmit={handleSendMessage} className="p-4 border-t border-zinc-800 flex gap-2">
-                                <input
-                                    type="text"
-                                    value={newMessage}
-                                    onChange={(e) => setNewMessage(e.target.value)}
-                                    placeholder="Escribe un mensaje..."
-                                    className="flex-1 bg-zinc-800 border border-zinc-700 text-white rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-500"
-                                />
-                                <button
-                                    type="submit"
-                                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-5 py-2.5 rounded-lg text-sm transition"
-                                >
-                                    Enviar
-                                </button>
-                            </form>
-                        </div>
+                                {isBlockedFromSending ? (
+                                    <div className="p-3 bg-zinc-900 border border-zinc-700 rounded-lg text-center text-xs text-zinc-400">
+                                        <Clock className="w-4 h-4 mx-auto mb-1 text-[#f0ac00]" />
+                                        Ya enviaste tu mensaje de solicitud. Tenés que esperar a que <b>@{activeChatUser}</b> acepte para seguir chateando.
+                                    </div>
+                                ) : (
+                                    <form onSubmit={handleSendMessage} className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            placeholder={!isFriend && !activeConversation ? "Enviá tu mensaje de solicitud..." : "Escribí tu mensaje..."}
+                                            value={text}
+                                            onChange={e => setText(e.target.value)}
+                                            className="flex-grow bg-zinc-900 border border-zinc-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#f0ac00]"
+                                        />
+                                        <button
+                                            type="submit"
+                                            disabled={!text.trim() || sending}
+                                            className="bg-[#f0ac00] hover:bg-[#d49800] disabled:opacity-50 text-black px-4 py-2 rounded-lg font-bold transition flex items-center justify-center cursor-pointer"
+                                        >
+                                            <Send className="w-4 h-4" />
+                                        </button>
+                                    </form>
+                                )}
+                            </div>
+                        </>
                     ) : (
-                        /* Estado vacío si no hay chat seleccionado */
-                        <div className="flex-1 flex flex-col items-center justify-center text-zinc-500 gap-2">
-                            <span className="text-4xl">💬</span>
-                            <p className="text-sm">Selecciona una conversación o inicia un nuevo chat</p>
+                        <div className="h-full flex flex-col items-center justify-center text-zinc-500 p-6 text-center">
+                            <MessageSquare className="w-12 h-12 mb-3 opacity-20" />
+                            <p className="text-sm font-semibold">Seleccioná a un amigo o responde una solicitud para chatear</p>
                         </div>
                     )}
                 </div>
 
-            </div>
+            </main>
+            <Footer />
         </div>
     );
 }
+
+export default ChatPage;
