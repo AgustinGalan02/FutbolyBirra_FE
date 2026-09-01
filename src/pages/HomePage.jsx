@@ -14,7 +14,6 @@ function HomePage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newCat, setNewCat] = useState({ title: "", description: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formErrors, setFormErrors] = useState([]);
 
   // ESTADOS MODAL ELIMINAR
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -27,33 +26,14 @@ function HomePage() {
   // Lógica Crear
   const handleCreateCategory = async (e) => {
     e.preventDefault();
-    setFormErrors([]);
-
-    const localErrors = [];
-    if (!newCat.title.trim()) localErrors.push({ field: "title", message: "El título no puede estar vacío" });
-    if (!newCat.description.trim()) localErrors.push({ field: "description", message: "La descripción no puede estar vacía" });
-    if (localErrors.length > 0) {
-      setFormErrors(localErrors);
-      return;
-    }
-
+    if (!newCat.title.trim()) return;
     setIsSubmitting(true);
     try {
       const res = await createCategoryRequest(newCat);
       setCategories([res.data, ...categories]);
       setShowCreateModal(false);
       setNewCat({ title: "", description: "" });
-      setFormErrors([]);
-    } catch (error) {
-      const serverErrors = error.response?.data;
-      if (Array.isArray(serverErrors)) {
-        setFormErrors(serverErrors);
-      } else {
-        setFormErrors([{ message: serverErrors?.message || "Error al crear la categoría" }]);
-      }
-    } finally {
-      setIsSubmitting(false);
-    }
+    } finally { setIsSubmitting(false); }
   };
 
   // Lógica Abrir Modal Eliminar
@@ -75,10 +55,6 @@ function HomePage() {
     }
   };
 
-  const titleError = formErrors.find(e => e.field === "title")?.message;
-  const descriptionError = formErrors.find(e => e.field === "description")?.message;
-  const generalError = formErrors.find(e => !e.field)?.message;
-
   if (loading) return <LoadingSpinner />;
 
   return (
@@ -86,7 +62,7 @@ function HomePage() {
       <Navbar />
       <main className="max-w-7xl mx-auto p-6 flex-grow w-full">
 
-        {/* BANNER PARA INVITADOS */}
+        {/* BANNER PARA INVITADOS - REINTEGRADO */}
         {!isAuthenticated && (
           <div className="bg-[#f0ac00]/10 border border-[#f0ac00]/30 p-4 rounded-xl mb-8 text-center animate-pulse shadow-[0_0_15px_rgba(240,172,0,0.1)]">
             <Link to="/register"
@@ -103,7 +79,7 @@ function HomePage() {
             <p className="text-zinc-500 text-sm">Discusión general sobre el fútbol y más</p>
           </div>
           {user?.role === 'admin' && (
-            <button onClick={() => { setShowCreateModal(true); setFormErrors([]); }} className="bg-[#f0ac00] text-black px-5 py-2.5 rounded-xl font-bold hover:bg-[#d49800] transition flex items-center gap-2 shadow-lg cursor-pointer">
+            <button onClick={() => setShowCreateModal(true)} className="bg-[#f0ac00] text-black px-5 py-2.5 rounded-xl font-bold hover:bg-[#d49800] transition flex items-center gap-2 shadow-lg cursor-pointer">
               <MessageCirclePlus className="w-5 h-5" /> Nueva Categoría
             </button>
           )}
@@ -146,7 +122,11 @@ function HomePage() {
                         <span className="truncate">{cat.lastPostTitle}</span>
                       </div>
                       <div className="text-zinc-500 text-xs">
-                        por <span className="text-zinc-300 font-medium">{cat.lastPostAuthor || 'Usuario'}</span><br />
+                        por <Link
+                          to={`/profile/${cat.lastPostAuthor}`}
+                          className="text-zinc-300 hover:text-[#f0ac00] hover:underline font-medium transition cursor-pointer">
+                          {cat.lastPostAuthor || 'Usuario'}
+                        </Link><br />
                         <span className="text-[10px] uppercase opacity-70">{FormatDate(cat.lastPostDate)}</span>
                       </div>
                     </div>
@@ -173,7 +153,7 @@ function HomePage() {
       {/* MODAL CREAR */}
       <FormModal
         isOpen={showCreateModal}
-        onClose={() => { setShowCreateModal(false); setFormErrors([]); }}
+        onClose={() => setShowCreateModal(false)}
         onSubmit={handleCreateCategory}
         title="Nueva Categoría"
         icon={MessageCirclePlus}
@@ -181,31 +161,8 @@ function HomePage() {
         submitLabel="Crear"
       >
         <div className="space-y-4">
-          {generalError && (
-            <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
-              <span className="text-red-500 text-sm font-medium">{generalError}</span>
-            </div>
-          )}
-          <div>
-            <input
-              type="text"
-              placeholder="Título"
-              value={newCat.title}
-              onChange={e => { setNewCat({ ...newCat, title: e.target.value }); setFormErrors(prev => prev.filter(err => err.field !== "title")); }}
-              className={`w-full bg-zinc-900 border rounded-xl p-3 text-white outline-none focus:ring-1 ${titleError ? 'border-red-500 focus:ring-red-500' : 'border-zinc-700 focus:ring-[#f0ac00]'}`}
-            />
-            {titleError && <span className="text-red-500 text-xs font-medium mt-1 block">{titleError}</span>}
-          </div>
-          <div>
-            <textarea
-              placeholder="Descripción"
-              value={newCat.description}
-              onChange={e => { setNewCat({ ...newCat, description: e.target.value }); setFormErrors(prev => prev.filter(err => err.field !== "description")); }}
-              className={`w-full bg-zinc-900 border rounded-xl p-3 text-white outline-none focus:ring-1 resize-none ${descriptionError ? 'border-red-500 focus:ring-red-500' : 'border-zinc-700 focus:ring-[#f0ac00]'}`}
-              rows="3"
-            />
-            {descriptionError && <span className="text-red-500 text-xs font-medium mt-1 block">{descriptionError}</span>}
-          </div>
+          <input type="text" placeholder="Título" value={newCat.title} onChange={e => setNewCat({ ...newCat, title: e.target.value })} className="w-full bg-zinc-900 border border-zinc-700 rounded-xl p-3 text-white outline-none focus:ring-1 focus:ring-[#f0ac00]" />
+          <textarea placeholder="Descripción" value={newCat.description} onChange={e => setNewCat({ ...newCat, description: e.target.value })} className="w-full bg-zinc-900 border border-zinc-700 rounded-xl p-3 text-white outline-none focus:ring-1 focus:ring-[#f0ac00] resize-none" rows="3" />
         </div>
       </FormModal>
 
