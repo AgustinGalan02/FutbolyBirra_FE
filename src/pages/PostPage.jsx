@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getCommentsByPostRequest, createCommentRequest, deleteCommentRequest } from '../api/comments';
 import { ARGENTINE_TEAMS_LOCAL } from '../api/teamsData';
-import { MessageSquare, Shield, Clock, Send, User, Edit, Trash2 } from 'lucide-react';
+import { MessageSquare, Shield, Clock, Send, User, Edit, Trash2, Reply, X } from 'lucide-react';
 import { getPostRequest, deletePostRequest, updatePostRequest } from '../api/posts';
 import '../index.css';
 import { Footer, EditModal, DeleteModal, Navbar, FormatDate, LoadingSpinner, Button } from '../components/';
@@ -16,16 +16,44 @@ function PostPage() {
     const [isLoading, setIsLoading] = useState(true);
     const navigate = useNavigate();
 
+    // Ref para manipular la posición del cursor en el textarea de respuesta
+    const replyInputRef = useRef(null);
+
     // ESTADOS PARA MODALES
     const [isDeletePostModalOpen, setIsDeletePostModalOpen] = useState(false);
     const [isEditPostModalOpen, setIsEditPostModalOpen] = useState(false);
     const [isDeleteCommentModalOpen, setIsDeleteCommentModalOpen] = useState(false);
     const [commentToDelete, setCommentToDelete] = useState(null);
 
+    // ESTADOS PARA COMENTAR / RESPONDER
     const [newComment, setNewComment] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [commentError, setCommentError] = useState("");
-    const [editErrors, setEditErrors] = useState([]);
+    const [replyingTo, setReplyingTo] = useState(null); // ID del comentario raíz del hilo
+    const [replyTargetUser, setReplyTargetUser] = useState(""); // Username al que se arroba
+    const [replyContent, setReplyContent] = useState("");
+
+    // Función para transformar @username en un enlace <Link>
+    const renderFormattedText = (text) => {
+        if (!text) return null;
+        const words = text.split(' ');
+        return words.map((word, index) => {
+            if (word.startsWith('@') && word.length > 1) {
+                const cleanUsername = word.replace(/^@/, '').replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, '');
+                return (
+                    <React.Fragment key={index}>
+                        <Link
+                            to={`/profile/${cleanUsername}`}
+                            className="text-[#f0ac00] hover:underline font-semibold cursor-pointer transition inline-block"
+                        >
+                            @{cleanUsername}
+                        </Link>
+                        {' '}
+                    </React.Fragment>
+                );
+            }
+            return <React.Fragment key={index}>{word} </React.Fragment>;
+        });
+    };
 
     // --- LÓGICA DE POSTS ---
     const handleDeletePost = async () => {
@@ -40,7 +68,6 @@ function PostPage() {
 
     const handleUpdatePost = async (newTitle, newContent) => {
         try {
-            setEditErrors([]);
             const res = await updatePostRequest(post._id, { title: newTitle, content: newContent });
             setPost({
                 ...res.data,
@@ -49,12 +76,7 @@ function PostPage() {
             });
             setIsEditPostModalOpen(false);
         } catch (error) {
-            const serverErrors = error.response?.data;
-            if (Array.isArray(serverErrors)) {
-                setEditErrors(serverErrors);
-            } else {
-                setEditErrors([{ message: serverErrors?.message || "Error al editar el post" }]);
-            }
+            console.error("Error al editar el post:", error);
         }
     };
 
@@ -62,7 +84,7 @@ function PostPage() {
     const handleDeleteComment = async () => {
         try {
             await deleteCommentRequest(commentToDelete);
-            setComments(comments.filter(c => c._id !== commentToDelete));
+            setComments(comments.filter(c => c._id !== commentToDelete && c.parentComment !== commentToDelete));
             setIsDeleteCommentModalOpen(false);
             setCommentToDelete(null);
         } catch (error) {
@@ -70,30 +92,65 @@ function PostPage() {
         }
     };
 
+    // Comentario Principal
     const handleCommentSubmit = async (e) => {
         e.preventDefault();
-        setCommentError("");
-        if (!newComment.trim()) {
-            setCommentError("El comentario no puede estar vacío");
-            return;
-        }
+        if (!newComment.trim()) return;
         setIsSubmitting(true);
         try {
-            const res = await createCommentRequest({ content: newComment, post: id });
+            const res = await createCommentRequest({ content: newComment, post: id, parentComment: null });
             setComments([...comments, {
                 ...res.data,
-                author: { _id: user.id, username: user.username, team: user.team }
+                author: res.data.author || { _id: user.id || user._id, username: user.username, team: user.team }
             }]);
             setNewComment("");
-            setCommentError("");
         } catch (error) {
-            const serverErrors = error.response?.data;
-            if (Array.isArray(serverErrors)) {
-                const contentErr = serverErrors.find(e => e.field === "content");
-                setCommentError(contentErr?.message || serverErrors[0]?.message || "Error al publicar");
-            } else {
-                setCommentError(serverErrors?.message || "Error al publicar el comentario");
+            console.error("Error al publicar comentario:", error);
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    // Activar el formulario de respuesta y posicionar el cursor al final del @usuario
+    const handleStartReply = (rootCommentId, targetUsername, isSubReply = false) => {
+        if (replyingTo === rootCommentId && replyTargetUser === targetUsername) {
+            setReplyingTo(null);
+            setReplyTargetUser("");
+            setReplyContent("");
+            return;
+        }
+
+        const textToInsert = isSubReply ? `@${targetUsername} ` : "";
+        setReplyingTo(rootCommentId);
+        setReplyTargetUser(targetUsername);
+        setReplyContent(textToInsert);
+
+        // Ubica el cursor exactamente al final del texto insertado
+        setTimeout(() => {
+            if (replyInputRef.current) {
+                const length = textToInsert.length;
+                replyInputRef.current.focus();
+                replyInputRef.current.setSelectionRange(length, length);
             }
+        }, 50);
+    };
+
+    // Respuesta a un Comentario
+    const handleReplySubmit = async (e, parentId) => {
+        e.preventDefault();
+        if (!replyContent.trim()) return;
+        setIsSubmitting(true);
+        try {
+            const res = await createCommentRequest({ content: replyContent, post: id, parentComment: parentId });
+            setComments([...comments, {
+                ...res.data,
+                author: res.data.author || { _id: user.id || user._id, username: user.username, team: user.team }
+            }]);
+            setReplyContent("");
+            setReplyingTo(null);
+            setReplyTargetUser("");
+        } catch (error) {
+            console.error("Error al responder comentario:", error);
         } finally {
             setIsSubmitting(false);
         }
@@ -139,6 +196,10 @@ function PostPage() {
     const userId = user?.id || user?._id;
     const postAuthorTeam = getTeamData(post.author?.team);
 
+    // Separamos comentarios raíz y respuestas hijas
+    const rootComments = comments.filter(c => !c.parentComment);
+    const getRepliesForComment = (parentId) => comments.filter(c => String(c.parentComment) === String(parentId));
+
     return (
         <div className="min-h-screen bg-zinc-900 text-zinc-200 font-sans flex flex-col">
             <Navbar backLabel="Volver" />
@@ -152,17 +213,31 @@ function PostPage() {
                             <h1 className="text-3xl font-bold text-white">{post.title}</h1>
                             {userId === post.author?._id && (
                                 <div className="flex items-center gap-2">
-                                    <button onClick={() => { setEditErrors([]); setIsEditPostModalOpen(true); }} className="p-2 text-zinc-400 hover:text-[#f0ac00] transition-colors cursor-pointer" title="Editar tema"><Edit className="w-5 h-5" /></button>
+                                    <button onClick={() => setIsEditPostModalOpen(true)} className="p-2 text-zinc-400 hover:text-[#f0ac00] transition-colors cursor-pointer" title="Editar tema"><Edit className="w-5 h-5" /></button>
                                     <button onClick={() => setIsDeletePostModalOpen(true)} className="p-2 text-zinc-400 hover:text-red-500 transition-colors cursor-pointer" title="Borrar tema"><Trash2 className="w-5 h-5" /></button>
                                 </div>
                             )}
                         </div>
                         <div className="flex items-center gap-4 mb-6 pb-6 border-b border-zinc-700">
                             <div className="w-12 h-12 bg-zinc-700 rounded-full flex items-center justify-center border border-[#f0ac00]">
-                                <span className="text-xl font-bold text-[#f0ac00] uppercase">{post.author?.username?.charAt(0) || '?'}</span>
+                                <Link
+                                    to={`/profile/${post.author?.username}`}
+                                    className="text-xl font-bold text-[#f0ac00] uppercase hover:opacity-80 transition cursor-pointer"
+                                >
+                                    {post.author?.username?.charAt(0) || '?'}
+                                </Link>
                             </div>
                             <div>
-                                <p className="font-bold text-zinc-200 uppercase">{post.author?.username || 'Usuario Eliminado'}</p>
+                                {post.author?.username ? (
+                                    <Link
+                                        to={`/profile/${post.author.username}`}
+                                        className="font-bold text-zinc-200 hover:text-[#f0ac00] hover:underline uppercase transition cursor-pointer block"
+                                    >
+                                        {post.author.username}
+                                    </Link>
+                                ) : (
+                                    <p className="font-bold text-zinc-400 uppercase">Usuario Eliminado</p>
+                                )}
                                 <div className="flex flex-wrap items-center gap-3 text-xs text-zinc-400 mt-1">
                                     <div className="flex items-center gap-1">
                                         {postAuthorTeam.logo ? <img src={postAuthorTeam.logo} alt="escudo" className="w-4 h-4 object-contain" /> : <Shield className="w-4 h-4" />}
@@ -184,7 +259,7 @@ function PostPage() {
                                 </div>
                             </div>
                         </div>
-                        <div className="text-zinc-300 whitespace-pre-wrap text-lg leading-relaxed">{post.content}</div>
+                        <div className="text-zinc-300 whitespace-pre-wrap text-lg leading-relaxed">{renderFormattedText(post.content)}</div>
                     </div>
                 </article>
 
@@ -196,58 +271,165 @@ function PostPage() {
                     </div>
 
                     <div className="divide-y divide-zinc-700">
-                        {comments.length === 0 ? (
+                        {rootComments.length === 0 ? (
                             <div className="p-8 text-center text-zinc-500">
                                 <p>No hay respuestas aún. ¡Sé el primero en opinar!</p>
                             </div>
                         ) : (
-                            comments.map((comment) => {
+                            rootComments.map((comment) => {
                                 const commentTeam = getTeamData(comment.author?.team);
+                                const replies = getRepliesForComment(comment._id);
+
                                 return (
-                                    <div key={comment._id} className="p-6 hover:bg-zinc-750 transition group">
-                                        <div className="flex justify-between items-start mb-3">
-                                            <div className="flex items-center gap-3">
-                                                <span className="font-bold text-[#f0ac00] uppercase text-sm">{comment.author?.username}</span>
-                                                {commentTeam.logo && <img src={commentTeam.logo} alt="escudo" className="w-4 h-4 object-contain" />}
-                                                <span className="text-zinc-500 text-xs">{FormatDate(comment.createdAt)}</span>
+                                    <div key={comment._id} className="p-6 hover:bg-zinc-750/50 transition">
+                                        {/* Comentario Padre */}
+                                        <div className="group">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <div className="flex items-center gap-3">
+                                                    {comment.author?.username ? (
+                                                        <Link
+                                                            to={`/profile/${comment.author.username}`}
+                                                            className="font-bold text-[#f0ac00] hover:underline uppercase text-sm transition cursor-pointer"
+                                                        >
+                                                            {comment.author.username}
+                                                        </Link>
+                                                    ) : (
+                                                        <span className="font-bold text-zinc-500 uppercase text-sm">Usuario Eliminado</span>
+                                                    )}
+                                                    {commentTeam.logo && <img src={commentTeam.logo} alt="escudo" className="w-4 h-4 object-contain" />}
+                                                    <span className="text-zinc-500 text-xs">{FormatDate(comment.createdAt)}</span>
+                                                </div>
+
+                                                <div className="flex items-center gap-2">
+                                                    {isAuthenticated && (
+                                                        <button
+                                                            onClick={() => handleStartReply(comment._id, comment.author?.username, false)}
+                                                            className="text-xs text-zinc-400 hover:text-[#f0ac00] flex items-center gap-1 transition cursor-pointer"
+                                                        >
+                                                            <Reply className="w-3.5 h-3.5" />
+                                                            Responder
+                                                        </button>
+                                                    )}
+
+                                                    {userId === (comment.author?._id || comment.author?.id) && (
+                                                        <button
+                                                            onClick={() => { setCommentToDelete(comment._id); setIsDeleteCommentModalOpen(true); }}
+                                                            className="text-zinc-500 hover:text-red-500 transition-colors p-1 opacity-0 group-hover:opacity-100 cursor-pointer"
+                                                            title="Borrar comentario"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    )}
+                                                </div>
                                             </div>
-                                            {userId === comment.author?._id && (
-                                                <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+
+                                            <p className="text-zinc-300 whitespace-pre-wrap text-sm leading-relaxed">{renderFormattedText(comment.content)}</p>
+                                        </div>
+
+                                        {/* Respuestas Hijas (Hilos) */}
+                                        {replies.length > 0 && (
+                                            <div className="mt-4 pl-4 space-y-3 border-l-2 border-zinc-700/60 ml-2">
+                                                {replies.map((reply) => {
+                                                    const replyTeam = getTeamData(reply.author?.team);
+                                                    return (
+                                                        <div key={reply._id} className="p-3 bg-zinc-900/40 rounded-lg group">
+                                                            <div className="flex justify-between items-start mb-1">
+                                                                <div className="flex items-center gap-2">
+                                                                    {reply.author?.username ? (
+                                                                        <Link
+                                                                            to={`/profile/${reply.author.username}`}
+                                                                            className="font-bold text-[#f0ac00] hover:underline uppercase text-xs transition cursor-pointer"
+                                                                        >
+                                                                            {reply.author.username}
+                                                                        </Link>
+                                                                    ) : (
+                                                                        <span className="font-bold text-zinc-500 uppercase text-xs">Usuario Eliminado</span>
+                                                                    )}
+                                                                    {replyTeam.logo && <img src={replyTeam.logo} alt="escudo" className="w-3.5 h-3.5 object-contain" />}
+                                                                    <span className="text-zinc-500 text-[11px]">{FormatDate(reply.createdAt)}</span>
+                                                                </div>
+
+                                                                <div className="flex items-center gap-2">
+                                                                    {isAuthenticated && (
+                                                                        <button
+                                                                            onClick={() => handleStartReply(comment._id, reply.author?.username, true)}
+                                                                            className="text-[11px] text-zinc-400 hover:text-[#f0ac00] flex items-center gap-1 transition cursor-pointer opacity-0 group-hover:opacity-100"
+                                                                        >
+                                                                            <Reply className="w-3 h-3" />
+                                                                            Responder
+                                                                        </button>
+                                                                    )}
+
+                                                                    {userId === (reply.author?._id || reply.author?.id) && (
+                                                                        <button
+                                                                            onClick={() => { setCommentToDelete(reply._id); setIsDeleteCommentModalOpen(true); }}
+                                                                            className="text-zinc-500 hover:text-red-500 transition-colors p-1 opacity-0 group-hover:opacity-100 cursor-pointer"
+                                                                            title="Borrar respuesta"
+                                                                        >
+                                                                            <Trash2 className="w-3.5 h-3.5" />
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                            <p className="text-zinc-300 whitespace-pre-wrap text-xs leading-relaxed">{renderFormattedText(reply.content)}</p>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+
+                                        {/* Formulario para Responder dentro del hilo */}
+                                        {replyingTo === comment._id && (
+                                            <form onSubmit={(e) => handleReplySubmit(e, comment._id)} className="mt-4 pl-4 border-l-2 border-[#f0ac00] flex flex-col gap-2">
+                                                <div className="flex justify-between items-center text-xs text-[#f0ac00]">
+                                                    <span>
+                                                        Respondiendo a{' '}
+                                                        <Link
+                                                            to={`/profile/${replyTargetUser || comment.author?.username}`}
+                                                            className="underline font-bold hover:text-white"
+                                                        >
+                                                            @{replyTargetUser || comment.author?.username}
+                                                        </Link>
+                                                    </span>
                                                     <button
-                                                        onClick={() => { setCommentToDelete(comment._id); setIsDeleteCommentModalOpen(true); }}
-                                                        className="text-zinc-500 hover:text-red-500 transition-colors p-1"
-                                                        title="Borrar comentario"
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setReplyingTo(null);
+                                                            setReplyTargetUser("");
+                                                            setReplyContent("");
+                                                        }}
+                                                        className="text-zinc-400 hover:text-white cursor-pointer"
                                                     >
-                                                        <Trash2 className="w-4 h-4" />
+                                                        <X className="w-3.5 h-3.5" />
                                                     </button>
                                                 </div>
-                                            )}
-                                        </div>
-                                        <p className="text-zinc-300 whitespace-pre-wrap">{comment.content}</p>
+                                                <textarea
+                                                    ref={replyInputRef}
+                                                    rows="2"
+                                                    value={replyContent}
+                                                    onChange={(e) => setReplyContent(e.target.value)}
+                                                    placeholder="Escribí tu respuesta..."
+                                                    className="w-full bg-zinc-900 border border-zinc-700 rounded-lg p-2.5 text-xs text-zinc-200 focus:outline-none focus:border-[#f0ac00] transition"
+                                                />
+                                                <div className="flex justify-end gap-2">
+                                                    <Button type="submit" disabled={isSubmitting || !replyContent.trim()} className="text-xs px-4 py-1.5 flex items-center gap-1">
+                                                        {isSubmitting ? 'Enviando...' : <><Send className="w-3 h-3" /> Responder</>}
+                                                    </Button>
+                                                </div>
+                                            </form>
+                                        )}
                                     </div>
                                 );
                             })
                         )}
                     </div>
 
+                    {/* Formulario para comentario principal del post */}
                     <div className="p-6 bg-zinc-900/50 border-t border-zinc-700">
                         {isAuthenticated ? (
                             <form onSubmit={handleCommentSubmit} className="flex flex-col gap-3">
-                                <textarea
-                                    rows="3"
-                                    value={newComment}
-                                    onChange={(e) => { setNewComment(e.target.value); setCommentError(""); }}
-                                    placeholder="Escribí lo que pensás acá..."
-                                    className={`w-full bg-zinc-900 border rounded-lg p-3 text-zinc-200 focus:outline-none transition-all ${commentError ? 'border-red-500 focus:border-red-500' : 'border-zinc-600 focus:border-[#f0ac00]'}`}
-                                />
-                                {commentError && (
-                                    <span className="text-red-500 text-xs font-medium">{commentError}</span>
-                                )}
-                                <div className="flex justify-end">
-                                    <Button type="submit" disabled={isSubmitting || !newComment.trim()} className="flex items-center gap-2 px-6">
-                                        {isSubmitting ? 'Publicando...' : <><Send className="w-4 h-4" />Responder</>}
-                                    </Button>
-                                </div>
+                                <textarea rows="3" value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Escribí lo que pensás acá..." className="w-full bg-zinc-900 border border-zinc-600 rounded-lg p-3 text-zinc-200 focus:outline-none focus:border-[#f0ac00] transition-all" />
+                                <div className="flex justify-end"><Button type="submit" disabled={isSubmitting || !newComment.trim()} className="flex items-center gap-2 px-6">{isSubmitting ? 'Publicando...' : <><Send className="w-4 h-4" />Responder al tema</>}</Button></div>
                             </form>
                         ) : (
                             <Link to="/register" className="bg-[#f0ac00]/10 border border-[#f0ac00]/30 p-4 rounded-xl flex items-center justify-center gap-3 hover:bg-[#f0ac00]/20 transition-all group"><User className="w-5 h-5 text-[#f0ac00]" /><p className="text-[#f0ac00] font-medium">¡Registrate para responder posts!</p></Link>
@@ -271,15 +453,14 @@ function PostPage() {
                 onClose={() => { setIsDeleteCommentModalOpen(false); setCommentToDelete(null); }}
                 onConfirm={handleDeleteComment}
                 title="¿Borrar comentario?"
-                message="Esta respuesta desaparecerá del foro."
+                message="Esta respuesta (y sus posibles respuestas anidadas) desaparecerá del foro."
             />
 
             <EditModal
                 isOpen={isEditPostModalOpen}
-                onClose={() => { setIsEditPostModalOpen(false); setEditErrors([]); }}
+                onClose={() => setIsEditPostModalOpen(false)}
                 post={post}
                 onSave={handleUpdatePost}
-                errors={editErrors}
             />
         </div>
     );
