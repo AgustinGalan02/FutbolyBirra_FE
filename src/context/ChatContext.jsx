@@ -2,6 +2,7 @@ import { createContext, useContext, useState } from "react";
 import { getConversationsRequest, deleteConversationRequest } from "../api/conversations";
 import { getMessagesRequest, sendMessageRequest } from "../api/messages";
 import { getRestrictionsRequest, createRestrictionRequest, removeRestrictionRequest } from "../api/restrictions";
+import { getUserProfileRequest } from "../api/auth";
 
 const ChatContext = createContext();
 
@@ -20,8 +21,6 @@ export const ChatProvider = ({ children }) => {
     const [restrictions, setRestrictions] = useState([]);
     const [errors, setErrors] = useState([]);
 
-
-
     // CONVERSACIONES
     const loadConversations = async () => {
         try {
@@ -32,6 +31,19 @@ export const ChatProvider = ({ children }) => {
         }
     };
 
+    // BORRAR CONVERSACION
+    const deleteConversation = async (id) => {
+        try {
+            await deleteConversationRequest(id);
+            setConversations((prev) => prev.filter((c) => c._id !== id));
+            if (activeConversation?._id === id) {
+                setActiveConversation(null);
+                setMessages([]);
+            }
+        } catch (error) {
+            setErrors(error.response?.data ? [error.response.data.message] : ['Error al eliminar conversación']);
+        }
+    };
 
     // MENSAJES
     const loadMessages = async (conversationId) => {
@@ -47,7 +59,7 @@ export const ChatProvider = ({ children }) => {
         try {
             const res = await sendMessageRequest(messageData);
             setMessages((prev) => [...prev, res.data.message]);
-            await loadConversations(); // Actualiza la lista lateral con el último mensaje/orden
+            await loadConversations();
             return res.data;
         } catch (error) {
             const errMsg = error.response?.data?.message || 'Error al enviar mensaje';
@@ -55,7 +67,6 @@ export const ChatProvider = ({ children }) => {
             throw error;
         }
     };
-
 
     // RESTRICCIONES - BLOQUEOS
     const loadRestrictions = async () => {
@@ -67,19 +78,36 @@ export const ChatProvider = ({ children }) => {
         }
     };
 
-    const blockUser = async (userTarget) => {
+    const blockUser = async (targetUsernameOrPersonId) => {
         try {
-            await createRestrictionRequest({ userTarget });
+            let personTarget = targetUsernameOrPersonId;
+
+            if (!/^[0-9a-fA-F]{24}$/.test(String(targetUsernameOrPersonId))) {
+                const profileRes = await getUserProfileRequest(targetUsernameOrPersonId);
+                personTarget = profileRes.data?.personId || profileRes.data?.person?._id;
+            }
+
+            if (!personTarget) {
+                setErrors(['No se pudo identificar la persona a bloquear']);
+                return;
+            }
+
+            await createRestrictionRequest({
+                personTarget,
+                tipoRestriccion: 'BLOQUEO'
+            });
             await loadRestrictions();
         } catch (error) {
             setErrors(error.response?.data ? [error.response.data.message] : ['Error al bloquear usuario']);
         }
     };
 
-    const unblockUser = async (userTarget) => {
+    const unblockUser = async (personTarget) => {
         try {
-            await removeRestrictionRequest(userTarget);
-            setRestrictions((prev) => prev.filter((r) => r.userTarget !== userTarget));
+            await removeRestrictionRequest(personTarget);
+            setRestrictions((prev) =>
+                prev.filter((r) => String(r.personTarget?._id || r.personTarget) !== String(personTarget))
+            );
         } catch (error) {
             setErrors(error.response?.data ? [error.response.data.message] : ['Error al desbloquear usuario']);
         }
@@ -95,7 +123,7 @@ export const ChatProvider = ({ children }) => {
                 restrictions,
                 errors,
                 loadConversations,
-                deleteConversationRequest,
+                deleteConversation,
                 loadMessages,
                 sendMessage,
                 loadRestrictions,

@@ -178,12 +178,13 @@ function ProfilePage() {
   };
 
   const userTeam = getTeamData(profileUser?.team);
-  const profileUserId = profileUser?.id || profileUser?._id;
+  const profilePersonId = profileUser?.personId || profileUser?.person?._id;
+  const authPersonId = authUser?.personId;
 
   // Estados de relación
-  const isFriend = friendsList.some(f => (f._id || f.id) === profileUserId);
-  const hasIncomingRequest = friendRequests.some(r => (r.from?._id || r.from?.id || r.from) === profileUserId);
-  const hasSentRequest = profileUser?.friendRequests?.some(r => (r.from?._id || r.from?.id || r.from) === authUserId);
+  const isFriend = friendsList.some(f => String(f._id || f.id) === String(profilePersonId));
+  const hasIncomingRequest = friendRequests.some(r => String(r.from?._id || r.from?.id || r.from) === String(profilePersonId));
+  const hasSentRequest = profileUser?.person?.friendRequests?.some(r => String(r.from?._id || r.from?.id || r.from) === String(authPersonId));
 
   return (
     <div className="min-h-screen bg-zinc-900 text-zinc-200 font-sans pb-10">
@@ -236,11 +237,11 @@ function ProfilePage() {
                 ) : (
                   <>
                     <Link
-                      to={`/messages?with=${profileUser?.username}`}
+                      to="/messages"
                       className="w-full bg-[#f0ac00] hover:bg-[#d49800] text-black font-bold py-2.5 px-4 rounded-lg transition flex items-center justify-center gap-2"
                     >
                       <Send className="w-4 h-4" />
-                      {isFriend ? "Enviar Mensaje" : "Enviar Solicitud de Mensaje"}
+                      Enviar Mensaje
                     </Link>
 
                     {isAuthenticated && (
@@ -257,14 +258,14 @@ function ProfilePage() {
                         ) : hasIncomingRequest ? (
                           <div className="flex gap-2">
                             <button
-                              onClick={() => handleAcceptRequest(profileUserId)}
+                              onClick={() => handleAcceptRequest(profilePersonId)}
                               disabled={actionLoading}
                               className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2 px-3 rounded-lg transition text-xs flex items-center justify-center gap-1 cursor-pointer"
                             >
                               <UserCheck className="w-3.5 h-3.5" /> Aceptar
                             </button>
                             <button
-                              onClick={() => handleRejectRequest(profileUserId)}
+                              onClick={() => handleRejectRequest(profilePersonId)}
                               disabled={actionLoading}
                               className="flex-1 bg-zinc-700 hover:bg-red-600 text-white font-semibold py-2 px-3 rounded-lg transition text-xs flex items-center justify-center gap-1 cursor-pointer"
                             >

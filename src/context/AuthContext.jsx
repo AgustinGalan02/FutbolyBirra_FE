@@ -92,7 +92,6 @@ export const AuthProvider = ({ children }) => {
                 setIsAuthenticated(true);
                 setUser(res.data);
                 setLoading(false);
-
             } catch (error) {
                 setIsAuthenticated(false);
                 setUser(null);

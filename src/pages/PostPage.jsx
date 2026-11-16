@@ -194,8 +194,7 @@ function PostPage() {
     </div>;
 
     const userId = user?.id || user?._id;
-    const postAuthorTeam = getTeamData(post.author?.team);
-
+    const postAuthorTeam = getTeamData(post.author?.person?.team || post.author?.team);
     // Separamos comentarios raíz y respuestas hijas
     const rootComments = comments.filter(c => !c.parentComment);
     const getRepliesForComment = (parentId) => comments.filter(c => String(c.parentComment) === String(parentId));
@@ -277,8 +276,7 @@ function PostPage() {
                             </div>
                         ) : (
                             rootComments.map((comment) => {
-                                const commentTeam = getTeamData(comment.author?.team);
-                                const replies = getRepliesForComment(comment._id);
+                                const commentTeam = getTeamData(comment.author?.person?.team || comment.author?.team); const replies = getRepliesForComment(comment._id);
 
                                 return (
                                     <div key={comment._id} className="p-6 hover:bg-zinc-750/50 transition">
@@ -330,8 +328,7 @@ function PostPage() {
                                         {replies.length > 0 && (
                                             <div className="mt-4 pl-4 space-y-3 border-l-2 border-zinc-700/60 ml-2">
                                                 {replies.map((reply) => {
-                                                    const replyTeam = getTeamData(reply.author?.team);
-                                                    return (
+                                                    const replyTeam = getTeamData(reply.author?.person?.team || reply.author?.team); return (
                                                         <div key={reply._id} className="p-3 bg-zinc-900/40 rounded-lg group">
                                                             <div className="flex justify-between items-start mb-1">
                                                                 <div className="flex items-center gap-2">

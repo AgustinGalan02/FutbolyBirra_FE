@@ -167,8 +167,7 @@ function CategoryPage() {
                             </div>
                         ) : (
                             filteredPosts.map((post) => {
-                                const authorTeam = getTeamData(post.author?.team);
-                                return (
+                                const authorTeam = getTeamData(post.author?.person?.team || post.author?.team); return (
                                     <div key={post._id} className="flex items-center p-4 hover:bg-zinc-750 transition group">
                                         <div className="flex-1 px-4">
                                             <Link to={`/post/${post._id}`} className="text-lg font-bold text-zinc-200 group-hover:text-[#f0ac00] transition block truncate">

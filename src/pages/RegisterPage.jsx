@@ -24,8 +24,6 @@ function RegisterPage() {
         }
     }, [isAuthenticated, navigate]);
 
-
-
     useEffect(() => {
         setTeams(ARGENTINE_TEAMS_LOCAL);
         setLoading(false);
@@ -33,9 +31,9 @@ function RegisterPage() {
 
     const handleSelectTeam = (team) => {
         setSelectedTeam(team.id);
-        setValue("team", String(team.id), // Lo guardamos como string para el backend
+        setValue("team", String(team.id),
             {
-                shouldValidate: true, // error desaparece al elegir equipo
+                shouldValidate: true,
                 shouldDirty: true
             });
     };
@@ -45,10 +43,7 @@ function RegisterPage() {
     });
 
     return (
-        /* 1. Contenedor principal flex-col */
         <div className="min-h-screen bg-background-image flex flex-col font-sans">
-
-            {/* 2. Main que crece (flex-grow) y centra el contenido */}
             <main className="flex-grow flex items-center justify-center p-4 my-8">
                 <div className="bg-zinc-800/90 backdrop-blur-4xl max-w-md p-10 rounded-4xl w-full shadow-2xl border border-zinc-700 animate-in fade-in zoom-in duration-300">
                     <img
@@ -59,6 +54,20 @@ function RegisterPage() {
                     <h1 className="text-2xl font-bold text-white mb-4 text-center">CREAR CUENTA</h1>
 
                     <form onSubmit={onSubmit} className="flex flex-col gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <Input
+                                placeholder="Nombre"
+                                {...register("nombre")}
+                                error={errors.nombre?.message || registerErrors.find(err => err.field === "nombre")?.message}
+                            />
+
+                            <Input
+                                placeholder="Apellido"
+                                {...register("apellido")}
+                                error={errors.apellido?.message || registerErrors.find(err => err.field === "apellido")?.message}
+                            />
+                        </div>
+
                         <Input
                             placeholder="Usuario"
                             {...register("username")}
