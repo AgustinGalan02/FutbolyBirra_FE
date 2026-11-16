@@ -13,11 +13,13 @@ import {
     markAsReadRequest,
     markAllAsReadRequest
 } from '../api/notifications';
+import { useSocket } from '../context/SocketContext';
 
 function NotificationsDropdown() {
     const [notifications, setNotifications] = useState([]);
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef(null);
+    const { socket } = useSocket() || {};
 
     const unreadCount = notifications.filter((n) => !n.read).length;
 
@@ -32,10 +34,20 @@ function NotificationsDropdown() {
 
     useEffect(() => {
         fetchNotifications();
-        // Consulta periódica cada 4 segundos
-        const interval = setInterval(fetchNotifications, 4000);
-        return () => clearInterval(interval);
     }, []);
+
+    useEffect(() => {
+        if (!socket) return;
+
+        const handleNewNotification = (newNotif) => {
+            setNotifications((prev) =>
+                prev.some((n) => n._id === newNotif._id) ? prev : [newNotif, ...prev]
+            );
+        };
+
+        socket.on('new_notification', handleNewNotification);
+        return () => socket.off('new_notification', handleNewNotification);
+    }, [socket]);
 
     // Cerrar al hacer click afuera
     useEffect(() => {

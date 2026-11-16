@@ -1,8 +1,9 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 import { getConversationsRequest, deleteConversationRequest } from "../api/conversations";
 import { getMessagesRequest, sendMessageRequest } from "../api/messages";
 import { getRestrictionsRequest, createRestrictionRequest, removeRestrictionRequest } from "../api/restrictions";
 import { getUserProfileRequest } from "../api/auth";
+import { useSocket } from "./SocketContext";
 
 const ChatContext = createContext();
 
@@ -20,6 +21,24 @@ export const ChatProvider = ({ children }) => {
     const [messages, setMessages] = useState([]);
     const [restrictions, setRestrictions] = useState([]);
     const [errors, setErrors] = useState([]);
+
+    const { socket } = useSocket() || {};
+
+    useEffect(() => {
+        if (!socket) return;
+
+        const handleNewMessage = ({ message, conversationId }) => {
+            if (String(activeConversation?._id) === String(conversationId)) {
+                setMessages((prev) =>
+                    prev.some((m) => m._id === message._id) ? prev : [...prev, message]
+                );
+            }
+            loadConversations();
+        };
+
+        socket.on("new_message", handleNewMessage);
+        return () => socket.off("new_message", handleNewMessage);
+    }, [socket, activeConversation]);
 
     // CONVERSACIONES
     const loadConversations = async () => {

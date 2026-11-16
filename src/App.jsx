@@ -12,29 +12,33 @@ import ProtectedRoute from './ProtectedRoute.jsx';
 import { AuthProvider } from './context/AuthContext.jsx';
 import { ChatProvider } from './context/ChatContext';
 
+import { SocketProvider } from "./context/SocketContext";
+
 function App() {
   return (
     <AuthProvider>
-      <ChatProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/post/:id" element={<PostPage />} />
-            <Route path="/category/:id" element={<CategoryPage />} />
+      <SocketProvider>
+        <ChatProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              <Route path="/post/:id" element={<PostPage />} />
+              <Route path="/category/:id" element={<CategoryPage />} />
 
-            <Route element={<ProtectedRoute />}>
-              <Route path="/profile" element={<ProfilePage />} />
-              <Route path="/profile/:username" element={<ProfilePage />} />
-              <Route path="/messages" element={<ChatPage />} />
-            </Route>
+              <Route element={<ProtectedRoute />}>
+                <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/profile/:username" element={<ProfilePage />} />
+                <Route path="/messages" element={<ChatPage />} />
+              </Route>
 
-            {/* Catch-all 404 */}
-            <Route path="*" element={<NotFoundPage />} />
-          </Routes>
-        </BrowserRouter>
-      </ChatProvider>
+              {/* Catch-all 404 */}
+              <Route path="*" element={<NotFoundPage />} />
+            </Routes>
+          </BrowserRouter>
+        </ChatProvider>
+      </SocketProvider>
     </AuthProvider>
   );
 }
