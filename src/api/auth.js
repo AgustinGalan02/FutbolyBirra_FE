@@ -9,3 +9,5 @@ export const VerifyTokenRequest = () => axios.get(`/verify`); // validacion toke
 export const LogoutRequest = () => axios.post('/logout'); // logout
 
 export const getUserProfileRequest = (username) => axios.get(`/users/${username}`); // perfil publico
+
+export const updateAvatarRequest = (avatar) => axios.put('/profile/avatar', { avatar }); //foto perfil

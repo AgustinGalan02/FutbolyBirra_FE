@@ -68,6 +68,17 @@ function RegisterPage() {
                             />
                         </div>
 
+                        <div className="flex flex-col gap-1">
+                            <label className="text-zinc-400 text-xs ml-1">Fecha de nacimiento</label>
+                            <Input
+                                type="date"
+                                max={new Date().toISOString().split("T")[0]}
+                                style={{ colorScheme: "dark" }}
+                                {...register("fechaNacimiento")}
+                                error={errors.fechaNacimiento?.message || registerErrors.find(err => err.field === "fechaNacimiento")?.message}
+                            />
+                        </div>
+
                         <Input
                             placeholder="Usuario"
                             {...register("username")}

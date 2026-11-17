@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from "../context/AuthContext";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
@@ -13,10 +13,13 @@ import {
   UserCheck,
   UserX,
   Clock,
-  Users
+  Users,
+  Camera,
+  Trash2,
+  Calendar
 } from 'lucide-react';
 import { getMyPostsRequest, getMyCommentsRequest } from '../api/profile';
-import { getUserProfileRequest } from '../api/auth';
+import { getUserProfileRequest, updateAvatarRequest } from '../api/auth';
 import {
   getFriendsRequest,
   sendFriendRequest,
@@ -43,12 +46,91 @@ function ProfilePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
 
+  // Estados y refs para foto de perfil y menú de avatar
+  const fileInputRef = useRef(null);
+  const avatarMenuRef = useRef(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false);
+
   // Estado para el modal de confirmación de eliminar amigo
   const [isRemoveFriendModalOpen, setIsRemoveFriendModalOpen] = useState(false);
   const [friendToRemove, setFriendToRemove] = useState(null);
 
   const isOwnProfile = !username || username === authUser?.username;
   const authUserId = authUser?.id || authUser?._id;
+
+  // Cerrar menú desplegable de avatar al hacer clic afuera
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (avatarMenuRef.current && !avatarMenuRef.current.contains(e.target)) {
+        setIsAvatarMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const compressImageToBase64 = (file) =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const size = 200;
+          canvas.width = size;
+          canvas.height = size;
+          const ctx = canvas.getContext('2d');
+
+          const minSide = Math.min(img.width, img.height);
+          const sx = (img.width - minSide) / 2;
+          const sy = (img.height - minSide) / 2;
+
+          ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, size, size);
+          resolve(canvas.toDataURL('image/jpeg', 0.8));
+        };
+        img.onerror = reject;
+        img.src = event.target.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+  const handleAvatarChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploadingAvatar(true);
+      const compressedBase64 = await compressImageToBase64(file);
+      const res = await updateAvatarRequest(compressedBase64);
+      setProfileUser((prev) => ({
+        ...prev,
+        avatar: res.data.avatar
+      }));
+    } catch (error) {
+      console.error('Error al actualizar foto de perfil:', error);
+    } finally {
+      setUploadingAvatar(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleRemoveAvatar = async () => {
+    try {
+      setIsAvatarMenuOpen(false);
+      setUploadingAvatar(true);
+      await updateAvatarRequest('');
+      setProfileUser((prev) => ({
+        ...prev,
+        avatar: ''
+      }));
+    } catch (error) {
+      console.error('Error al eliminar foto de perfil:', error);
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
 
   const loadProfileData = async () => {
     setIsLoading(true);
@@ -195,10 +277,73 @@ function ProfilePage() {
 
           {/* COLUMNA IZQUIERDA: Tarjeta de Usuario */}
           <div className="md:col-span-1 space-y-6">
-            <div className="bg-zinc-800 border border-zinc-700 rounded-xl overflow-hidden shadow-xl p-6 text-center">
-              <div className="w-24 h-24 bg-zinc-700 rounded-full mx-auto flex items-center justify-center mb-4 border-2 border-[#f0ac00]">
-                <User className="w-12 h-12 text-[#f0ac00]" />
+            <div className="bg-zinc-800 border border-zinc-700 rounded-xl shadow-xl p-6 text-center">
+              <div className="relative w-24 h-24 mx-auto mb-4" ref={avatarMenuRef}>
+                <div className="w-24 h-24 bg-zinc-700 rounded-full flex items-center justify-center border-2 border-[#f0ac00] overflow-hidden">
+                  {profileUser?.avatar ? (
+                    <img
+                      src={profileUser.avatar}
+                      alt={profileUser.username}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <User className="w-12 h-12 text-[#f0ac00]" />
+                  )}
+                </div>
+
+                {isOwnProfile && (
+                  <>
+                    <button
+                      type="button"
+                      disabled={uploadingAvatar}
+                      onClick={() => {
+                        if (profileUser?.avatar) {
+                          setIsAvatarMenuOpen((prev) => !prev);
+                        } else {
+                          fileInputRef.current?.click();
+                        }
+                      }}
+                      title="Foto de perfil"
+                      className="absolute bottom-0 right-0 bg-[#f0ac00] hover:bg-[#d49800] disabled:opacity-50 text-black p-2 rounded-full shadow-lg border-2 border-zinc-800 transition cursor-pointer"
+                    >
+                      <Camera className="w-4 h-4" />
+                    </button>
+
+                    {isAvatarMenuOpen && profileUser?.avatar && (
+                      <div className="absolute left-1/2 -translate-x-1/2 mt-2 w-40 bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl py-1.5 z-50 text-left">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsAvatarMenuOpen(false);
+                            fileInputRef.current?.click();
+                          }}
+                          className="w-full px-3.5 py-2 text-xs text-zinc-200 hover:bg-zinc-800 flex items-center gap-2 transition cursor-pointer"
+                        >
+                          <Camera className="w-3.5 h-3.5 text-[#f0ac00]" />
+                          Cambiar foto
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleRemoveAvatar}
+                          className="w-full px-3.5 py-2 text-xs text-red-400 hover:bg-zinc-800 flex items-center gap-2 transition cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          Eliminar foto
+                        </button>
+                      </div>
+                    )}
+
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleAvatarChange}
+                      className="hidden"
+                    />
+                  </>
+                )}
               </div>
+
               <h1 className="text-2xl font-bold text-white mb-1 uppercase tracking-wide">
                 {profileUser?.username || "Usuario"}
               </h1>
@@ -225,6 +370,21 @@ function ProfilePage() {
                     {userTeam.name}
                   </span>
                 </div>
+                {profileUser?.createdAt && (
+                  <div className="flex items-center gap-3 text-zinc-400">
+                    <Calendar className="w-5 h-5 text-zinc-500 shrink-0" />
+                    <span className="text-xs">
+                      Miembro desde{' '}
+                      <strong className="text-zinc-300">
+                        {new Date(profileUser.createdAt).toLocaleDateString('es-AR', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric'
+                        })}
+                      </strong>
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Acciones */}

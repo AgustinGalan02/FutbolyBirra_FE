@@ -69,6 +69,17 @@ export default function ChatPage() {
         fetchFriends();
     }, []);
 
+    // Cargar conversaciones y lista de amigos cuando cambia el usuario
+    useEffect(() => {
+        if (user) {
+            loadConversations();
+            fetchFriends();
+        }
+        return () => {
+            setActiveConversation(null);
+        };
+    }, [user?.username]);
+
     const fetchFriends = async () => {
         try {
             setLoadingFriends(true);
@@ -281,11 +292,10 @@ export default function ChatPage() {
                                                 setIsStartingNewChat(false);
                                                 setActiveConversation(conv);
                                             }}
-                                            className={`p-4 cursor-pointer transition flex items-center justify-between ${
-                                                isSelected
+                                            className={`p-4 cursor-pointer transition flex items-center justify-between ${isSelected
                                                     ? 'bg-zinc-800/80 border-l-4 border-emerald-500'
                                                     : 'hover:bg-zinc-900'
-                                            }`}
+                                                }`}
                                         >
                                             <div>
                                                 <h3 className="font-semibold text-zinc-200">@{otherUser}</h3>
@@ -435,11 +445,10 @@ export default function ChatPage() {
                                                 className={`flex flex-col ${isMine ? 'items-end' : 'items-start'}`}
                                             >
                                                 <div
-                                                    className={`max-w-[70%] px-4 py-2.5 rounded-2xl text-sm ${
-                                                        isMine
+                                                    className={`max-w-[70%] px-4 py-2.5 rounded-2xl text-sm ${isMine
                                                             ? 'bg-emerald-600 text-white rounded-br-none'
                                                             : 'bg-zinc-800 text-zinc-200 rounded-bl-none border border-zinc-700'
-                                                    }`}
+                                                        }`}
                                                 >
                                                     {msg.content}
                                                 </div>
@@ -559,9 +568,8 @@ export default function ChatPage() {
                                                 </span>
                                             )}
                                             <ChevronDown
-                                                className={`w-4 h-4 text-zinc-400 transition-transform ${
-                                                    isFriendDropdownOpen ? 'rotate-180' : ''
-                                                }`}
+                                                className={`w-4 h-4 text-zinc-400 transition-transform ${isFriendDropdownOpen ? 'rotate-180' : ''
+                                                    }`}
                                             />
                                         </button>
 
@@ -583,9 +591,8 @@ export default function ChatPage() {
                                                                 setSelectedFriend(friend);
                                                                 setIsFriendDropdownOpen(false);
                                                             }}
-                                                            className={`w-full px-4 py-2.5 text-left flex items-center justify-between hover:bg-zinc-800 transition cursor-pointer ${
-                                                                isCurrentSelected ? 'bg-zinc-800/80' : ''
-                                                            }`}
+                                                            className={`w-full px-4 py-2.5 text-left flex items-center justify-between hover:bg-zinc-800 transition cursor-pointer ${isCurrentSelected ? 'bg-zinc-800/80' : ''
+                                                                }`}
                                                         >
                                                             <div className="flex items-center gap-3">
                                                                 {fTeam.logo ? (
